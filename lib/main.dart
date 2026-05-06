@@ -94,7 +94,7 @@ class MainScaffold extends StatelessWidget {
               right: 0,
               child: Center(
                 child: GestureDetector(
-                  onTap: () => cameraKey.currentState?.takePhoto(),
+                  onTap: () => cameraKey.currentState?.startCountdown(),
                   child: Container(
                     height: 80,
                     width: 80,
@@ -103,7 +103,7 @@ class MainScaffold extends StatelessWidget {
                       color: Colors.white,
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFE8C4A0).withOpacity(0.5),
+                          color: const Color(0xFFE8C4A0).withValues(alpha: .5),
                           blurRadius: 20,
                           spreadRadius: 5,
                         )

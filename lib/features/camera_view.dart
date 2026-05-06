@@ -1,9 +1,10 @@
-import 'dart:async'; // FIX: Defines Completer
-import 'dart:js_interop'; // For .toJS and .isA
+import 'dart:async';
+import 'dart:js_interop';
 import 'dart:typed_data';
 import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
 import 'package:web/web.dart' as web;
+import 'package:google_fonts/google_fonts.dart';
 
 class CameraView extends StatefulWidget {
   final Function(Uint8List) onCapture;
@@ -18,13 +19,15 @@ class CameraViewState extends State<CameraView> {
   late web.HTMLVideoElement _videoElement;
   final String _viewID = 'camera-view';
 
+  int _countdown = 0;
+  bool _showFlash = false;
+
   @override
   void initState() {
     super.initState();
-    // Initialize the video element according to SnapBooth specs
     _videoElement = web.document.createElement('video') as web.HTMLVideoElement
       ..autoplay = true
-      ..style.transform = 'scaleX(-1)' // Mirror for selfie[cite: 1]
+      ..style.transform = 'scaleX(-1)'
       ..style.objectFit = 'cover'
       ..style.width = '100%'
       ..style.height = '100%';
@@ -47,7 +50,28 @@ class CameraViewState extends State<CameraView> {
     }
   }
 
-  Future<void> takePhoto() async {
+  /// Public method to trigger the photobooth sequence
+  Future<void> startCountdown() async {
+    if (_countdown > 0) return;
+
+    for (int i = 3; i > 0; i--) {
+      setState(() => _countdown = i);
+      await Future.delayed(const Duration(seconds: 1));
+    }
+
+    setState(() {
+      _countdown = 0;
+      _showFlash = true;
+    });
+
+    // Brief delay to show the white flash overlay
+    await _capturePhoto();
+
+    await Future.delayed(const Duration(milliseconds: 200));
+    setState(() => _showFlash = false);
+  }
+
+  Future<void> _capturePhoto() async {
     final canvas =
         web.document.createElement('canvas') as web.HTMLCanvasElement;
     canvas.width = _videoElement.videoWidth;
@@ -58,9 +82,7 @@ class CameraViewState extends State<CameraView> {
     ctx.scale(-1, 1);
     ctx.drawImage(_videoElement, 0, 0);
 
-    // Using Completer to handle the non-Future toBlob callback[cite: 1]
     final completer = Completer<web.Blob>();
-
     canvas.toBlob(
         (web.Blob blob) {
           completer.complete(blob);
@@ -77,15 +99,40 @@ class CameraViewState extends State<CameraView> {
     final result = reader.result;
     if (result != null && result.isA<JSArrayBuffer>()) {
       final jsBuffer = result as JSArrayBuffer;
-      // Convert JSArrayBuffer to Uint8List for Flutter[cite: 1]
       final uint8list = jsBuffer.toDart.asUint8List();
       widget.onCapture(uint8list);
     }
   }
 
-  // FIX: Added the missing build method[cite: 1]
   @override
   Widget build(BuildContext context) {
-    return HtmlElementView(viewType: _viewID);
+    return Stack(
+      children: [
+        // The Live Camera Feed[cite: 1]
+        HtmlElementView(viewType: _viewID),
+
+        // Countdown Overlay[cite: 1]
+        if (_countdown > 0)
+          Center(
+            child: Text(
+              '$_countdown',
+              style: GoogleFonts.playfairDisplay(
+                fontSize: 200,
+                color: const Color(0xFFE8C4A0),
+                fontWeight: FontWeight.bold,
+                shadows: [
+                  const Shadow(blurRadius: 20, color: Colors.black),
+                ],
+              ),
+            ),
+          ),
+
+        // Flash Effect Overlay[cite: 1]
+        if (_showFlash)
+          Positioned.fill(
+            child: Container(color: Colors.white),
+          ),
+      ],
+    );
   }
 }
