@@ -86,15 +86,16 @@ class StripCompositor {
     ctx.fillText('✦ SnapBooth ✦', _stripW / 2, _stripH - 40);
 
     final completer = Completer<Uint8List>();
-    canvas.toBlob(
-        (web.Blob resultBlob) async {
-          final reader = web.FileReader();
-          reader.readAsArrayBuffer(resultBlob);
-          await reader.onLoadEnd.first;
-          final buffer = (reader.result as JSArrayBuffer).toDart;
-          completer.complete(buffer.asUint8List());
-        }.toJS,
-        'image/png');
+    void onBlob(web.Blob resultBlob) {
+      final reader = web.FileReader();
+      reader.readAsArrayBuffer(resultBlob);
+      reader.onLoadEnd.first.then((_) {
+        final buffer = (reader.result as JSArrayBuffer).toDart;
+        completer.complete(buffer.asUint8List());
+      });
+    }
+
+    canvas.toBlob(onBlob.toJS, 'image/png');
 
     return completer.future;
   }
