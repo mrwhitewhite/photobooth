@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'services/photobooth_provider.dart';
 import 'features/camera_view.dart';
-import 'features/home_screen.dart'; // Ensure this exists based on previous step
+import 'features/home_screen.dart';
 
 void main() {
   runApp(
@@ -21,14 +21,12 @@ class SnapBoothApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner: true,
       title: 'SnapBooth',
       theme: ThemeData(
         brightness: Brightness.dark,
-        // Art-deco background and surface colors
         scaffoldBackgroundColor: const Color(0xFF0D0A05),
         primaryColor: const Color(0xFFE8C4A0),
-        // Applying Lato for body text as per requirements
         textTheme: GoogleFonts.latoTextTheme(ThemeData.dark().textTheme),
       ),
       home: const MainScaffold(),
@@ -42,7 +40,6 @@ class MainScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PhotoboothProvider>();
-    // GlobalKey allows us to call the takePhoto() method inside CameraViewState
     final cameraKey = GlobalKey<CameraViewState>();
 
     return Scaffold(
@@ -56,10 +53,7 @@ class MainScaffold extends StatelessWidget {
   Widget _buildBody(
       PhotoboothProvider provider, GlobalKey<CameraViewState> cameraKey) {
     return switch (provider.state) {
-      // 1. Layout Selection Screen[cite: 1]
       AppState.layoutSelect => const HomeScreen(),
-
-      // 2. Camera Capture Screen[cite: 1]
       AppState.camera => Stack(
           key: const ValueKey('camera_screen'),
           children: [
@@ -67,7 +61,6 @@ class MainScaffold extends StatelessWidget {
               key: cameraKey,
               onCapture: (bytes) => provider.addPhoto(bytes),
             ),
-            // Shot counter overlay[cite: 1]
             Positioned(
               top: 40,
               right: 40,
@@ -82,41 +75,58 @@ class MainScaffold extends StatelessWidget {
                 child: Text(
                   'SHOT ${provider.photos.length + 1} / ${provider.selectedLayout.photoCount}',
                   style: GoogleFonts.lato(
-                      color: const Color(0xFFE8C4A0),
-                      fontWeight: FontWeight.bold),
+                    color: const Color(0xFFE8C4A0),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
-            // Shutter Button[cite: 1]
             Positioned(
               bottom: 50,
               left: 0,
               right: 0,
               child: Center(
-                child: GestureDetector(
-                  onTap: () => cameraKey.currentState?.startCountdown(),
-                  child: Container(
-                    height: 80,
-                    width: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFE8C4A0).withValues(alpha: .5),
-                          blurRadius: 20,
-                          spreadRadius: 5,
-                        )
-                      ],
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GestureDetector(
+                      onTap: () => cameraKey.currentState?.startCountdown(),
+                      child: Container(
+                        height: 80,
+                        width: 80,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFE8C4A0)
+                                  .withValues(alpha: 0.5),
+                              blurRadius: 20,
+                              spreadRadius: 5,
+                            )
+                          ],
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.camera_alt,
+                              color: Colors.black, size: 32),
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'TAP TO START COUNTDOWN',
+                      style: GoogleFonts.lato(
+                        color: const Color(0xFFE8C4A0),
+                        letterSpacing: 2,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ],
         ),
-
-      // 3. Review Screen[cite: 1]
       AppState.review => Center(
           key: const ValueKey('review_screen'),
           child: Column(
@@ -125,15 +135,19 @@ class MainScaffold extends StatelessWidget {
               Text(
                 '✦ Review Your Shots ✦',
                 style: GoogleFonts.playfairDisplay(
-                    fontSize: 32, color: const Color(0xFFE8C4A0)),
+                  fontSize: 32,
+                  color: const Color(0xFFE8C4A0),
+                ),
               ),
               const SizedBox(height: 20),
-              // Simple preview of the last taken shot
               if (provider.photos.isNotEmpty)
                 Container(
                   decoration: BoxDecoration(
                     border:
                         Border.all(color: const Color(0xFFE8C4A0), width: 4),
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black54, blurRadius: 20),
+                    ],
                   ),
                   child: Image.memory(provider.photos.last, height: 400),
                 ),
@@ -141,29 +155,31 @@ class MainScaffold extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  ElevatedButton(
+                  OutlinedButton(
                     onPressed: () => provider.reset(),
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF3D2E1E)),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                        color: const Color(0xFFE8C4A0).withValues(alpha: 0.5),
+                      ),
+                    ),
                     child: const Text('RETAKE ALL'),
                   ),
                   const SizedBox(width: 20),
                   ElevatedButton(
                     onPressed: () {
-                      // Logic for finalizing and printing will go here[cite: 1]
+                      // Logic for finalizing the strip will follow
                     },
                     style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE8C4A0)),
-                    child: const Text('PROCEED',
-                        style: TextStyle(color: Colors.black)),
+                      backgroundColor: const Color(0xFFE8C4A0),
+                      foregroundColor: Colors.black,
+                    ),
+                    child: const Text('PROCEED TO PRINT'),
                   ),
                 ],
               ),
             ],
           ),
         ),
-
-      // Default / Loading fallback
       _ => const Center(child: CircularProgressIndicator()),
     };
   }
