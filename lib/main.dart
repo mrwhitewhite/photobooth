@@ -34,18 +34,25 @@ class SnapBoothApp extends StatelessWidget {
   }
 }
 
-class MainScaffold extends StatelessWidget {
+class MainScaffold extends StatefulWidget {
   const MainScaffold({super.key});
+
+  @override
+  State<MainScaffold> createState() => _MainScaffoldState();
+}
+
+class _MainScaffoldState extends State<MainScaffold> {
+  // Move the key here so it is only created once for the lifetime of the widget
+  final GlobalKey<CameraViewState> _cameraKey = GlobalKey<CameraViewState>();
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PhotoboothProvider>();
-    final cameraKey = GlobalKey<CameraViewState>();
 
     return Scaffold(
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 500),
-        child: _buildBody(provider, cameraKey),
+        child: _buildBody(provider, _cameraKey),
       ),
     );
   }
@@ -133,7 +140,7 @@ class MainScaffold extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                '✦ Review Your Shots ✦',
+                'Review Your Shots',
                 style: GoogleFonts.playfairDisplay(
                   fontSize: 32,
                   color: const Color(0xFFE8C4A0),
