@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'services/strip_compositor.dart';
 import 'services/photobooth_provider.dart';
 import 'features/camera_view.dart';
 import 'features/home_screen.dart';
@@ -173,8 +174,11 @@ class _MainScaffoldState extends State<MainScaffold> {
                   ),
                   const SizedBox(width: 20),
                   ElevatedButton(
-                    onPressed: () {
-                      // Logic for finalizing the strip will follow
+                    onPressed: () async {
+                      // Call the compositor to stitch the photos together[cite: 1]
+                      final strip =
+                          await StripCompositor.generateStrip(provider.photos);
+                      provider.completeSession(strip);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFE8C4A0),
@@ -187,7 +191,54 @@ class _MainScaffoldState extends State<MainScaffold> {
             ],
           ),
         ),
-      _ => const Center(child: CircularProgressIndicator()),
+      AppState.complete => Center(
+          key: const ValueKey('complete_screen'),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Your Masterpiece',
+                style: GoogleFonts.playfairDisplay(
+                  fontSize: 40,
+                  color: const Color(0xFFE8C4A0),
+                ),
+              ),
+              const SizedBox(height: 20),
+              if (provider.completedStrip != null)
+                Expanded(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 20),
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFE8C4A0).withValues(alpha: 0.2),
+                          blurRadius: 50,
+                        )
+                      ],
+                    ),
+                    child: SingleChildScrollView(
+                      child: Image.memory(
+                        provider.completedStrip!,
+                        width: 300,
+                      ),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () => provider.reset(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE8C4A0),
+                  foregroundColor: Colors.black,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                ),
+                child: const Text('START NEW SESSION'),
+              ),
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
     };
   }
 }
