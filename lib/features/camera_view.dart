@@ -17,24 +17,45 @@ class CameraView extends StatefulWidget {
 
 class CameraViewState extends State<CameraView> {
   late web.HTMLVideoElement _videoElement;
-  final String _viewID = 'camera-view';
-
+  late String _viewID = 'camera-view';
   int _countdown = 0;
   bool _showFlash = false;
 
   @override
   void initState() {
     super.initState();
+
+    // 1. Generate a unique ID every time the widget is created.
+    // This prevents the browser from showing a "stale" previous video element.
+    _viewID = 'camera-view-${DateTime.now().millisecondsSinceEpoch}';
+
     _videoElement = web.document.createElement('video') as web.HTMLVideoElement
       ..autoplay = true
+      ..muted = true // Muting is often required for reliable autoplay on web
       ..style.transform = 'scaleX(-1)'
       ..style.objectFit = 'cover'
       ..style.width = '100%'
       ..style.height = '100%';
 
+    // 2. Register the unique ID
     ui_web.platformViewRegistry
         .registerViewFactory(_viewID, (int viewId) => _videoElement);
+
     _initCamera();
+  }
+
+  @override
+  void dispose() {
+    // 3. CRITICAL: Stop the camera tracks when leaving the screen
+    // If you don't do this, the camera light stays on and the next session will fail.
+    if (_videoElement.srcObject != null) {
+      final stream = _videoElement.srcObject as web.MediaStream;
+      final tracks = stream.getTracks().toDart;
+      for (var track in tracks) {
+        track.stop();
+      }
+    }
+    super.dispose();
   }
 
   Future<void> _initCamera() async {
@@ -45,6 +66,9 @@ class CameraViewState extends State<CameraView> {
           .getUserMedia(constraints)
           .toDart;
       _videoElement.srcObject = stream;
+
+      // 4. Force the video to start playing[cite: 1]
+      await _videoElement.play().toDart;
     } catch (e) {
       debugPrint("Camera Error: $e");
     }
@@ -109,8 +133,10 @@ class CameraViewState extends State<CameraView> {
     return Stack(
       children: [
         // The Live Camera Feed[cite: 1]
-        HtmlElementView(viewType: _viewID),
-
+        HtmlElementView(
+          key: ValueKey(_viewID),
+          viewType: _viewID,
+        ),
         // Countdown Overlay[cite: 1]
         if (_countdown > 0)
           Center(
