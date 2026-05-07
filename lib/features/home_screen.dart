@@ -70,14 +70,10 @@ class _Header extends StatelessWidget {
             ],
           ),
           const Spacer(),
-          Text(
-            'SnapBooth',
-            style: GoogleFonts.cormorantGaramond(
-              fontSize: 22,
-              fontStyle: FontStyle.italic,
-              color: _C.muted,
-              fontWeight: FontWeight.w300,
-            ),
+          Image.asset(
+            'assets/logo.png',
+            height: 40,
+            fit: BoxFit.contain,
           ),
         ],
       ),

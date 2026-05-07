@@ -117,23 +117,6 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Logo / title
-                Text(
-                  'SnapBooth',
-                  style: GoogleFonts.cormorantGaramond(
-                    fontSize: 72,
-                    fontWeight: FontWeight.w300,
-                    fontStyle: FontStyle.italic,
-                    color: Colors.white,
-                    shadows: [
-                      Shadow(
-                        blurRadius: 40,
-                        color: Colors.black.withValues(alpha: 0.8),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 48),
                 // Pulse ring
                 FadeTransition(
                   opacity: _pulseAnim,

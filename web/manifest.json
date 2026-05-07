@@ -1,11 +1,11 @@
 {
-    "name": "SnapBooth",
-    "short_name": "SnapBooth",
+    "name": "MyReceipt",
+    "short_name": "MyReceipt",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0D0D0D",
     "theme_color": "#0D0D0D",
-    "description": "A professional photobooth experience for iPad Pro.",
+    "description": "MyReceipt — A professional photo booth experience for iPad Pro.",
     "orientation": "landscape",
     "prefer_related_applications": false,
     "icons": [

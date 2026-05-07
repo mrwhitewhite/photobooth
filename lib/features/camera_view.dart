@@ -235,14 +235,10 @@ class CameraViewState extends State<CameraView>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'SnapBooth',
-                      style: GoogleFonts.cormorantGaramond(
-                        fontSize: 22,
-                        fontStyle: FontStyle.italic,
-                        color: Colors.white.withValues(alpha: 0.8),
-                        fontWeight: FontWeight.w300,
-                      ),
+                    Image.asset(
+                      'assets/logo.png',
+                      height: 36,
+                      fit: BoxFit.contain,
                     ),
                     // Photo counter
                     Container(

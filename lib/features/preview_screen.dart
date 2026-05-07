@@ -75,7 +75,7 @@ class _PreviewScreenState extends State<PreviewScreen>
   void _download() {
     if (_composite == null) return;
     final ts = DateTime.now().millisecondsSinceEpoch;
-    ImageProcessor.downloadFile(_composite!, 'snapbooth_$ts.png');
+    ImageProcessor.downloadFile(_composite!, 'myreceipt_$ts.png');
   }
 
   @override
@@ -281,7 +281,7 @@ class _PreviewScreenState extends State<PreviewScreen>
           const SizedBox(height: 32),
           Center(
             child: Text(
-              'SnapBooth · ${DateTime.now().year}',
+              'MyReceipt · ${DateTime.now().year}',
               style: GoogleFonts.lato(
                   fontSize: 9, letterSpacing: 3, color: _C.border),
             ),

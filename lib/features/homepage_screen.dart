@@ -39,9 +39,14 @@ class _HomepageScreenState extends State<HomepageScreen>
       fit: StackFit.expand,
       children: [
         // ── Full-bleed background ────────────────────────────────────────────
-        Image.asset(
-          'assets/homepage.png',
-          fit: BoxFit.cover,
+        ColoredBox(
+          color: Colors.black,
+          child: Image.asset(
+            'assets/homepage.png',
+            fit: BoxFit.fitWidth,
+            alignment: Alignment.topCenter,
+            width: double.infinity,
+          ),
         ),
 
         // ── Subtle dark gradient at bottom for button legibility ──────────────
@@ -77,20 +82,10 @@ class _HomepageScreenState extends State<HomepageScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  'SnapBooth',
-                  style: GoogleFonts.cormorantGaramond(
-                    fontSize: 64,
-                    fontWeight: FontWeight.w300,
-                    fontStyle: FontStyle.italic,
-                    color: Colors.white,
-                    shadows: [
-                      Shadow(
-                        blurRadius: 20,
-                        color: Colors.black.withValues(alpha: 0.6),
-                      ),
-                    ],
-                  ),
+                Image.asset(
+                  'assets/logo.png',
+                  height: 80,
+                  fit: BoxFit.contain,
                 ),
                 const SizedBox(height: 8),
                 Text(
