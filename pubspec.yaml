@@ -1,5 +1,5 @@
 name: snapbooth
-description: "A Flutter Web Photobooth optimized for iPad."
+description: "A Flutter Web Photobooth PWA optimized for iPad Pro."
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -10,19 +10,19 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  
+
   # Web Interop & Compatibility
   web: ^0.5.1
   flutter_web_plugins:
     sdk: flutter
-  
+
   # State Management
   provider: ^6.1.2
-  
+
   # UI & Aesthetic
   google_fonts: ^6.2.1
   flutter_animate: ^4.5.0
-  
+
   # Networking
   http: ^1.2.1
 
@@ -34,6 +34,13 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # Ensure your assets are registered here as you add them[cite: 1]
-  # assets:
-  #   - assets/images/
+  assets:
+    - assets/homepage.png
+    - assets/layout_selection.png
+    - assets/layout/1x1.png
+    - assets/layout/2x1_camera.png
+    - assets/layout/2x2.PNG
+    - assets/layout/3x1.png
+    - assets/layout/4x2.png
+    - assets/screen_saver/screen_saver_1.mov
+    - assets/screen_saver/screen_saver_2.mov

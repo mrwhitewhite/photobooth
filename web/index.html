@@ -1,46 +1,87 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="SnapBooth — A professional photobooth experience for iPad.">
 
-  <!-- iOS meta tags & icons -->
+  <!-- Viewport: prevent user scaling, ensure full-screen on iPad -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+  <!-- iOS / iPadOS PWA meta tags -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="snapbooth">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SnapBooth">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Theme color -->
+  <meta name="theme-color" content="#0D0D0D">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>snapbooth</title>
+  <title>SnapBooth</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* ── Prevent ALL rubber-banding / overscroll on iPad Safari ── */
+    * {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      -webkit-overflow-scrolling: auto;
+      background-color: #0D0D0D;
+      touch-action: none;
+    }
+
+    /* Flutter canvas fills viewport completely */
+    flt-glass-pane, flt-scene-host, flt-scene {
+      touch-action: none !important;
+    }
+  </style>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
+  <script>
+    // Lock orientation to landscape after first user gesture (PWA requirement)
+    function lockLandscape() {
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('landscape').catch(() => {
+          // Silently ignore — not all browsers support this
+        });
+      }
+    }
+    document.addEventListener('click', lockLandscape, { once: true });
+    document.addEventListener('touchstart', lockLandscape, { once: true });
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
+    // Prevent double-tap zoom on iPad
+    let lastTap = 0;
+    document.addEventListener('touchend', function(e) {
+      const now = Date.now();
+      if (now - lastTap < 300) e.preventDefault();
+      lastTap = now;
+    }, { passive: false });
+
+    // Prevent pinch-zoom
+    document.addEventListener('gesturestart', function(e) {
+      e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('gesturechange', function(e) {
+      e.preventDefault();
+    }, { passive: false });
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

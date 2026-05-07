@@ -86,6 +86,7 @@ class StripCompositor {
     ctx.fillText('✦ SnapBooth ✦', _stripW / 2, _stripH - 40);
 
     final completer = Completer<Uint8List>();
+
     void onBlob(web.Blob resultBlob) {
       final reader = web.FileReader();
       reader.readAsArrayBuffer(resultBlob);

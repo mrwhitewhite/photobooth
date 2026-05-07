@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
-import 'services/strip_compositor.dart';
 import 'services/photobooth_provider.dart';
-import 'features/camera_view.dart';
+import 'features/screensaver_screen.dart';
+import 'features/homepage_screen.dart';
 import 'features/home_screen.dart';
+import 'features/camera_view.dart';
+import 'features/preview_screen.dart';
 
 void main() {
   runApp(
@@ -16,229 +18,78 @@ void main() {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// App root
+// ─────────────────────────────────────────────────────────────────────────────
 class SnapBoothApp extends StatelessWidget {
   const SnapBoothApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: true,
+      debugShowCheckedModeBanner: false,
       title: 'SnapBooth',
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0D0A05),
-        primaryColor: const Color(0xFFE8C4A0),
-        textTheme: GoogleFonts.latoTextTheme(ThemeData.dark().textTheme),
+      theme: _buildTheme(),
+      home: const _AppShell(),
+    );
+  }
+
+  ThemeData _buildTheme() {
+    const bg      = Color(0xFF0D0D0D);
+    const surface = Color(0xFF1A1A1A);
+    const accent  = Color(0xFFE8C8A0);
+    const text    = Color(0xFFF0EDE8);
+
+    return ThemeData(
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: bg,
+      primaryColor: accent,
+      colorScheme: const ColorScheme.dark(
+        primary: accent,
+        surface: surface,
+        onSurface: text,
       ),
-      home: const MainScaffold(),
+      textTheme: GoogleFonts.latoTextTheme(ThemeData.dark().textTheme).apply(
+        bodyColor: text,
+        displayColor: text,
+      ),
+      snackBarTheme: const SnackBarThemeData(
+        backgroundColor: surface,
+        contentTextStyle: TextStyle(color: text),
+      ),
     );
   }
 }
 
-class MainScaffold extends StatefulWidget {
-  const MainScaffold({super.key});
-
-  @override
-  State<MainScaffold> createState() => _MainScaffoldState();
-}
-
-class _MainScaffoldState extends State<MainScaffold> {
-  // Move the key here so it is only created once for the lifetime of the widget
-  final GlobalKey<CameraViewState> _cameraKey = GlobalKey<CameraViewState>();
+// ─────────────────────────────────────────────────────────────────────────────
+// Shell — routes between all 5 app states
+// ─────────────────────────────────────────────────────────────────────────────
+class _AppShell extends StatelessWidget {
+  const _AppShell();
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<PhotoboothProvider>();
+    final state = context.select<PhotoboothProvider, AppState>(
+      (p) => p.state,
+    );
 
-    return Scaffold(
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 500),
-        child: _buildBody(provider, _cameraKey),
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 600),
+      transitionBuilder: (child, anim) => FadeTransition(
+        opacity: CurvedAnimation(parent: anim, curve: Curves.easeInOut),
+        child: child,
       ),
+      child: _screenForState(state),
     );
   }
 
-  Widget _buildBody(
-      PhotoboothProvider provider, GlobalKey<CameraViewState> cameraKey) {
-    return switch (provider.state) {
-      AppState.layoutSelect => const HomeScreen(),
-      AppState.camera => Stack(
-          key: const ValueKey('camera_screen'),
-          children: [
-            CameraView(
-              key: cameraKey,
-              onCapture: (bytes) => provider.addPhoto(bytes),
-            ),
-            Positioned(
-              top: 40,
-              right: 40,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFE8C4A0)),
-                ),
-                child: Text(
-                  'SHOT ${provider.photos.length + 1} / ${provider.selectedLayout.photoCount}',
-                  style: GoogleFonts.lato(
-                    color: const Color(0xFFE8C4A0),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: 50,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    GestureDetector(
-                      onTap: () => cameraKey.currentState?.startCountdown(),
-                      child: Container(
-                        height: 80,
-                        width: 80,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white,
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFE8C4A0)
-                                  .withValues(alpha: 0.5),
-                              blurRadius: 20,
-                              spreadRadius: 5,
-                            )
-                          ],
-                        ),
-                        child: const Center(
-                          child: Icon(Icons.camera_alt,
-                              color: Colors.black, size: 32),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'TAP TO START COUNTDOWN',
-                      style: GoogleFonts.lato(
-                        color: const Color(0xFFE8C4A0),
-                        letterSpacing: 2,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      AppState.review => Center(
-          key: const ValueKey('review_screen'),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Review Your Shots',
-                style: GoogleFonts.playfairDisplay(
-                  fontSize: 32,
-                  color: const Color(0xFFE8C4A0),
-                ),
-              ),
-              const SizedBox(height: 20),
-              if (provider.photos.isNotEmpty)
-                Container(
-                  decoration: BoxDecoration(
-                    border:
-                        Border.all(color: const Color(0xFFE8C4A0), width: 4),
-                    boxShadow: const [
-                      BoxShadow(color: Colors.black54, blurRadius: 20),
-                    ],
-                  ),
-                  child: Image.memory(provider.photos.last, height: 400),
-                ),
-              const SizedBox(height: 30),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  OutlinedButton(
-                    onPressed: () => provider.reset(),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(
-                        color: const Color(0xFFE8C4A0).withValues(alpha: 0.5),
-                      ),
-                    ),
-                    child: const Text('RETAKE ALL'),
-                  ),
-                  const SizedBox(width: 20),
-                  ElevatedButton(
-                    onPressed: () async {
-                      // Call the compositor to stitch the photos together[cite: 1]
-                      final strip =
-                          await StripCompositor.generateStrip(provider.photos);
-                      provider.completeSession(strip);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE8C4A0),
-                      foregroundColor: Colors.black,
-                    ),
-                    child: const Text('PROCEED TO PRINT'),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      AppState.complete => Center(
-          key: const ValueKey('complete_screen'),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Your Masterpiece',
-                style: GoogleFonts.playfairDisplay(
-                  fontSize: 40,
-                  color: const Color(0xFFE8C4A0),
-                ),
-              ),
-              const SizedBox(height: 20),
-              if (provider.completedStrip != null)
-                Expanded(
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 20),
-                    decoration: BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFE8C4A0).withValues(alpha: 0.2),
-                          blurRadius: 50,
-                        )
-                      ],
-                    ),
-                    child: SingleChildScrollView(
-                      child: Image.memory(
-                        provider.completedStrip!,
-                        width: 300,
-                      ),
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () => provider.reset(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE8C4A0),
-                  foregroundColor: Colors.black,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-                ),
-                child: const Text('START NEW SESSION'),
-              ),
-              const SizedBox(height: 40),
-            ],
-          ),
-        ),
+  Widget _screenForState(AppState state) {
+    return switch (state) {
+      AppState.screensaver  => const ScreensaverScreen(key: ValueKey('screensaver')),
+      AppState.homepage     => const HomepageScreen(key: ValueKey('homepage')),
+      AppState.layoutSelect => const HomeScreen(key: ValueKey('layout')),
+      AppState.camera       => const CameraView(key: ValueKey('camera')),
+      AppState.preview      => const PreviewScreen(key: ValueKey('preview')),
     };
   }
 }
