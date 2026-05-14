@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../models/photo_models.dart';
 import '../services/image_processor.dart';
 import '../services/photobooth_provider.dart';
+import '../services/printer_service.dart';
 
 class _C {
   static const bg      = Color(0xFF0D0D0D);
@@ -26,6 +27,7 @@ class PreviewScreen extends StatefulWidget {
 class _PreviewScreenState extends State<PreviewScreen>
     with SingleTickerProviderStateMixin {
   bool _isCompositing = true;
+  bool _isPrinting = false;
   Uint8List? _composite;
   String? _error;
 
@@ -76,6 +78,52 @@ class _PreviewScreenState extends State<PreviewScreen>
     if (_composite == null) return;
     final ts = DateTime.now().millisecondsSinceEpoch;
     ImageProcessor.downloadFile(_composite!, 'myreceipt_$ts.png');
+  }
+
+  Future<void> _print() async {
+    if (_composite == null || _isPrinting) return;
+    setState(() => _isPrinting = true);
+    try {
+      await PrinterService.printReceipt(_composite!);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Print dialog opened — select your XPrinter ✓',
+              style: GoogleFonts.lato(letterSpacing: 1),
+            ),
+            backgroundColor: _C.surface,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+    } on PrinterException catch (e) {
+      if (mounted) {
+        _showPrintError(e.message);
+      }
+    } catch (e) {
+      if (mounted) {
+        _showPrintError(e.toString());
+      }
+    } finally {
+      if (mounted) setState(() => _isPrinting = false);
+    }
+  }
+
+  void _showPrintError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.lato(letterSpacing: 0.5),
+        ),
+        backgroundColor: _C.danger,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 6),
+      ),
+    );
   }
 
   @override
@@ -232,25 +280,13 @@ class _PreviewScreenState extends State<PreviewScreen>
 
           // ── Action buttons ────────────────────────────────────────────────
 
-          // Print (placeholder)
+          // Print — opens browser print dialog sized for XPrinter 80 mm roll
           _ActionButton(
-            label: 'PRINT',
-            icon: Icons.print_outlined,
+            label: _isPrinting ? 'PRINTING…' : 'PRINT',
+            icon: _isPrinting ? Icons.hourglass_top_rounded : Icons.print_outlined,
             filled: false,
-            enabled: _composite != null,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Print job sent ✓',
-                    style: GoogleFonts.lato(letterSpacing: 1),
-                  ),
-                  backgroundColor: _C.surface,
-                  behavior: SnackBarBehavior.floating,
-                  margin: const EdgeInsets.all(16),
-                ),
-              );
-            },
+            enabled: _composite != null && !_isPrinting,
+            onTap: _print,
           ),
           const SizedBox(height: 12),
 
