@@ -89,12 +89,13 @@ class _PreviewScreenState extends State<PreviewScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Print dialog opened — select your XPrinter ✓',
+              'Sent to XPrinter ✓',
               style: GoogleFonts.lato(letterSpacing: 1),
             ),
-            backgroundColor: _C.surface,
+            backgroundColor: const Color(0xFF1E3A1E),
             behavior: SnackBarBehavior.floating,
             margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -104,7 +105,11 @@ class _PreviewScreenState extends State<PreviewScreen>
       }
     } catch (e) {
       if (mounted) {
-        _showPrintError(e.toString());
+        // Clear cached BLE device so next tap shows the picker again.
+        PrinterService.disconnect();
+        _showPrintError(
+          'Bluetooth error — tap PRINT again to reconnect.\n${e.toString()}',
+        );
       }
     } finally {
       if (mounted) setState(() => _isPrinting = false);
@@ -121,7 +126,15 @@ class _PreviewScreenState extends State<PreviewScreen>
         backgroundColor: _C.danger,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 6),
+        duration: const Duration(seconds: 8),
+        action: SnackBarAction(
+          label: 'RECONNECT',
+          textColor: _C.accent,
+          onPressed: () {
+            PrinterService.disconnect();
+            _print();
+          },
+        ),
       ),
     );
   }
