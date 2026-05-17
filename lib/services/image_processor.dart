@@ -88,8 +88,14 @@ class ImageProcessor {
   }
 
   /// Convert raw PNG/JPEG bytes into an HTMLImageElement via Blob URL.
+  /// Detects PNG vs JPEG by magic bytes so the browser gets the correct MIME type.
   static Future<web.HTMLImageElement> _loadBytesImage(Uint8List bytes) async {
-    final blob = web.Blob([bytes.toJS].toJS);
+    // Detect format: PNG starts with 0x89504E47, JPEG with 0xFFD8FF
+    final isPng = bytes.length > 4 &&
+        bytes[0] == 0x89 && bytes[1] == 0x50 &&
+        bytes[2] == 0x4E && bytes[3] == 0x47;
+    final mimeType = isPng ? 'image/png' : 'image/jpeg';
+    final blob = web.Blob([bytes.toJS].toJS, web.BlobPropertyBag(type: mimeType));
     final url = web.URL.createObjectURL(blob);
     final img = web.HTMLImageElement();
     img.src = url;
