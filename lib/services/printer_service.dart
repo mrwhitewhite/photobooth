@@ -131,6 +131,7 @@ class PrinterService {
     final characteristic = charRaw as _BluetoothRemoteGATTCharacteristic;
 
     _cachedCharacteristic = characteristic;
+    
     return characteristic;
   }
 
@@ -180,8 +181,8 @@ class PrinterService {
 
     final img = web.HTMLImageElement();
     final completer = Completer<void>();
-    img.onload = ((_) => completer.complete()).toJS;
-    img.onerror = ((_, __, ___, ____, _____) =>
+    img.onload = ((JSAny? _) => completer.complete()).toJS;
+    img.onerror = ((JSAny? _, JSAny? __, JSAny? ___, JSAny? ____, JSAny? _____) =>
         completer.completeError(const PrinterException(
             'Image decode failed during ESC/POS conversion.'))).toJS;
     img.src = objectUrl;
