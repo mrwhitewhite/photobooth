@@ -63,32 +63,32 @@ enum PhotoLayout {
   /// Adjust if your specific template PNGs have different hole positions.
   List<LayoutSlot> get slots => switch (this) {
         PhotoLayout.layout1x1 => const [
-            LayoutSlot(0.05, 0.05, 0.90, 0.82),
+            LayoutSlot(0.0440, 0.1587, 0.9116, 0.6891),
           ],
         PhotoLayout.layout2x1 => const [
-            LayoutSlot(0.07, 0.04, 0.86, 0.44),
-            LayoutSlot(0.07, 0.52, 0.86, 0.44),
+            LayoutSlot(0.1277, 0.2104, 0.5310, 0.2351),
+            LayoutSlot(0.1883, 0.5845, 0.4707, 0.2071),
           ],
         PhotoLayout.layout2x2 => const [
-            LayoutSlot(0.04, 0.04, 0.45, 0.45),
-            LayoutSlot(0.51, 0.04, 0.45, 0.45),
-            LayoutSlot(0.04, 0.51, 0.45, 0.45),
-            LayoutSlot(0.51, 0.51, 0.45, 0.45),
+            LayoutSlot(0.0254, 0.1324, 0.4639, 0.3470),
+            LayoutSlot(0.5134, 0.1324, 0.4633, 0.3470),
+            LayoutSlot(0.0254, 0.4947, 0.4639, 0.3458),
+            LayoutSlot(0.5134, 0.4947, 0.4633, 0.3458),
           ],
         PhotoLayout.layout3x1 => const [
-            LayoutSlot(0.06, 0.03, 0.88, 0.29),
-            LayoutSlot(0.06, 0.355, 0.88, 0.29),
-            LayoutSlot(0.06, 0.68, 0.88, 0.29),
+            LayoutSlot(0.0599, 0.0945, 0.8815, 0.2506),
+            LayoutSlot(0.0599, 0.3647, 0.8815, 0.2459),
+            LayoutSlot(0.0599, 0.6300, 0.8815, 0.2455),
           ],
         PhotoLayout.layout4x2 => const [
-            LayoutSlot(0.04, 0.03, 0.44, 0.21),
-            LayoutSlot(0.52, 0.03, 0.44, 0.21),
-            LayoutSlot(0.04, 0.265, 0.44, 0.21),
-            LayoutSlot(0.52, 0.265, 0.44, 0.21),
-            LayoutSlot(0.04, 0.50, 0.44, 0.21),
-            LayoutSlot(0.52, 0.50, 0.44, 0.21),
-            LayoutSlot(0.04, 0.735, 0.44, 0.21),
-            LayoutSlot(0.52, 0.735, 0.44, 0.21),
+            LayoutSlot(0.0261, 0.0945, 0.4605, 0.1834),
+            LayoutSlot(0.5130, 0.0945, 0.4626, 0.1834),
+            LayoutSlot(0.0261, 0.2916, 0.4605, 0.1866),
+            LayoutSlot(0.5130, 0.2916, 0.4626, 0.1866),
+            LayoutSlot(0.0261, 0.4919, 0.4605, 0.1864),
+            LayoutSlot(0.5130, 0.4919, 0.4626, 0.1864),
+            LayoutSlot(0.0261, 0.6922, 0.4605, 0.1837),
+            LayoutSlot(0.5137, 0.6922, 0.4619, 0.1837),
           ],
       };
 }
