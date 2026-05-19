@@ -39,13 +39,10 @@ class _HomepageScreenState extends State<HomepageScreen>
       fit: StackFit.expand,
       children: [
         // ── Full-bleed background ────────────────────────────────────────────
-        ColoredBox(
-          color: Colors.black,
+        Positioned.fill(
           child: Image.asset(
             'assets/homepage.png',
-            fit: BoxFit.fitWidth,
-            alignment: Alignment.topCenter,
-            width: double.infinity,
+            fit: BoxFit.cover,
           ),
         ),
 
