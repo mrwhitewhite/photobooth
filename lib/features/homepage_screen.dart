@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+
 import 'package:provider/provider.dart';
 import '../services/photobooth_provider.dart';
 
@@ -48,7 +48,9 @@ class _HomepageScreenState extends State<HomepageScreen>
 
         // ── Subtle dark gradient at bottom for button legibility ──────────────
         Positioned(
-          bottom: 0, left: 0, right: 0,
+          bottom: 0,
+          left: 0,
+          right: 0,
           height: 280,
           child: DecoratedBox(
             decoration: BoxDecoration(
@@ -66,7 +68,9 @@ class _HomepageScreenState extends State<HomepageScreen>
 
         // ── Content ──────────────────────────────────────────────────────────
         Positioned(
-          bottom: 60, left: 0, right: 0,
+          bottom: 60,
+          left: 0,
+          right: 0,
           child: AnimatedBuilder(
             animation: _ctrl,
             builder: (context, child) => Opacity(
@@ -85,15 +89,16 @@ class _HomepageScreenState extends State<HomepageScreen>
                   fit: BoxFit.contain,
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  'YOUR PERFECT MOMENT AWAITS',
-                  style: GoogleFonts.lato(
-                    fontSize: 11,
-                    letterSpacing: 5,
-                    color: Colors.white.withValues(alpha: 0.75),
-                    fontWeight: FontWeight.w300,
-                  ),
-                ),
+                // Text(
+                //   'YOUR PERFECT MOMENT AWAITS',
+                //   style: TextStyle(
+                //     fontFamily: 'CHAOS16',
+                //     fontSize: 11,
+                //     letterSpacing: 5,
+                //     color: Colors.white.withValues(alpha: 0.75),
+                //     fontWeight: FontWeight.w300,
+                //   ),
+                // ),
                 const SizedBox(height: 40),
                 _StartButton(
                   onTap: () =>
@@ -152,24 +157,26 @@ class _StartButtonState extends State<_StartButton>
           width: 220,
           height: 64,
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(4),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.3),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
-              ),
-            ],
+            color: const Color(0xFFC0C0C0),
+            border: Border.all(color: Colors.black, width: 4),
           ),
-          child: Center(
-            child: Text(
-              'START',
-              style: GoogleFonts.lato(
-                fontSize: 14,
-                letterSpacing: 6,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF1A1A1A),
+          child: Container(
+            decoration: const BoxDecoration(
+              border: Border(
+                top: BorderSide(color: Colors.white, width: 4),
+                left: BorderSide(color: Colors.white, width: 4),
+                bottom: BorderSide(color: Color(0xFF808080), width: 4),
+                right: BorderSide(color: Color(0xFF808080), width: 4),
+              ),
+            ),
+            child: Center(
+              child: Text(
+                'Start',
+                style: const TextStyle(
+                  fontFamily: 'CHAOS16',
+                  fontSize: 24,
+                  color: Colors.black,
+                ),
               ),
             ),
           ),

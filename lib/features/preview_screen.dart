@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+
 import 'package:provider/provider.dart';
 import '../models/photo_models.dart';
 import '../services/image_processor.dart';
@@ -8,13 +8,13 @@ import '../services/photobooth_provider.dart';
 import '../services/printer_service.dart';
 
 class _C {
-  static const bg      = Color(0xFF0D0D0D);
+  static const bg = Color(0xFF0D0D0D);
   static const surface = Color(0xFF161616);
-  static const border  = Color(0xFF2A2A2A);
-  static const accent  = Color(0xFFE8C8A0);
-  static const text    = Color(0xFFF0EDE8);
-  static const muted   = Color(0xFF888480);
-  static const danger  = Color(0xFFFF6B6B);
+  static const border = Color(0xFF2A2A2A);
+  static const accent = Color(0xFFE8C8A0);
+  static const text = Color(0xFFF0EDE8);
+  static const muted = Color(0xFF888480);
+  static const danger = Color(0xFFFF6B6B);
 }
 
 class PreviewScreen extends StatefulWidget {
@@ -90,7 +90,8 @@ class _PreviewScreenState extends State<PreviewScreen>
           SnackBar(
             content: Text(
               'Sent to XPrinter ✓',
-              style: GoogleFonts.lato(letterSpacing: 1),
+              style: const TextStyle(
+                  fontFamily: 'PoppinsMedium', letterSpacing: 1),
             ),
             backgroundColor: const Color(0xFF1E3A1E),
             behavior: SnackBarBehavior.floating,
@@ -121,7 +122,8 @@ class _PreviewScreenState extends State<PreviewScreen>
       SnackBar(
         content: Text(
           message,
-          style: GoogleFonts.lato(letterSpacing: 0.5),
+          style:
+              const TextStyle(fontFamily: 'PoppinsMedium', letterSpacing: 0.5),
         ),
         backgroundColor: _C.danger,
         behavior: SnackBarBehavior.floating,
@@ -176,14 +178,17 @@ class _PreviewScreenState extends State<PreviewScreen>
             const SizedBox(
               width: 48,
               height: 48,
-              child: CircularProgressIndicator(
-                  color: _C.accent, strokeWidth: 1.5),
+              child:
+                  CircularProgressIndicator(color: _C.accent, strokeWidth: 1.5),
             ),
             const SizedBox(height: 24),
             Text(
               'COMPOSITING YOUR PHOTOS',
-              style: GoogleFonts.lato(
-                  fontSize: 10, letterSpacing: 4, color: _C.muted),
+              style: const TextStyle(
+                  fontFamily: 'PoppinsMedium',
+                  fontSize: 10,
+                  letterSpacing: 4,
+                  color: _C.muted),
             ),
           ],
         ),
@@ -199,9 +204,15 @@ class _PreviewScreenState extends State<PreviewScreen>
             children: [
               const Icon(Icons.error_outline, color: _C.danger, size: 48),
               const SizedBox(height: 16),
-              Text('Compositing failed', style: GoogleFonts.lato(color: _C.text)),
+              Text('Compositing failed',
+                  style: const TextStyle(
+                      fontFamily: 'PoppinsMedium', color: _C.text)),
               const SizedBox(height: 8),
-              Text(_error!, style: GoogleFonts.lato(color: _C.muted, fontSize: 12)),
+              Text(_error!,
+                  style: const TextStyle(
+                      fontFamily: 'PoppinsMedium',
+                      color: _C.muted,
+                      fontSize: 12)),
             ],
           ),
         ),
@@ -242,18 +253,20 @@ class _PreviewScreenState extends State<PreviewScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'YOUR PHOTOS',
-            style: GoogleFonts.lato(
-              fontSize: 9,
-              letterSpacing: 5,
-              color: _C.accent,
-            ),
-          ),
+          // Text(
+          //   'YOUR PHOTOS',
+          //   style: const TextStyle(
+          //     fontFamily: 'PoppinsMedium',
+          //     fontSize: 9,
+          //     letterSpacing: 5,
+          //     color: _C.accent,
+          //   ),
+          // ),
           const SizedBox(height: 12),
           Text(
             'Preview',
-            style: GoogleFonts.cormorantGaramond(
+            style: const TextStyle(
+              fontFamily: 'CHAOS16',
               fontSize: 48,
               fontWeight: FontWeight.w300,
               fontStyle: FontStyle.italic,
@@ -262,23 +275,24 @@ class _PreviewScreenState extends State<PreviewScreen>
             ),
           ),
           const SizedBox(height: 20),
-          Container(width: 40, height: 1, color: _C.accent.withValues(alpha: 0.5)),
+          Container(
+              width: 40, height: 1, color: _C.accent.withValues(alpha: 0.5)),
           const SizedBox(height: 20),
 
           // Layout name
           Text(
             provider.selectedLayout.label,
-            style: GoogleFonts.cormorant(
-              fontSize: 16,
-              fontStyle: FontStyle.italic,
+            style: const TextStyle(
+              fontFamily: 'CHAOS16',
+              fontSize: 20,
               color: _C.muted,
             ),
           ),
           Text(
             '${provider.capturedCount} photos captured',
-            style: GoogleFonts.lato(
-              fontSize: 10,
-              letterSpacing: 2,
+            style: const TextStyle(
+              fontFamily: 'CHAOS16',
+              fontSize: 20,
               color: _C.muted,
             ),
           ),
@@ -286,7 +300,8 @@ class _PreviewScreenState extends State<PreviewScreen>
           // Photo thumbnails row
           if (provider.allPhotos.isNotEmpty) ...[
             const SizedBox(height: 24),
-            _PhotoStrip(photos: provider.allPhotos, layout: provider.selectedLayout),
+            _PhotoStrip(
+                photos: provider.allPhotos, layout: provider.selectedLayout),
           ],
 
           const Spacer(),
@@ -296,7 +311,9 @@ class _PreviewScreenState extends State<PreviewScreen>
           // Print — opens browser print dialog sized for XPrinter 80 mm roll
           _ActionButton(
             label: _isPrinting ? 'PRINTING…' : 'PRINT',
-            icon: _isPrinting ? Icons.hourglass_top_rounded : Icons.print_outlined,
+            icon: _isPrinting
+                ? Icons.hourglass_top_rounded
+                : Icons.print_outlined,
             filled: false,
             enabled: _composite != null && !_isPrinting,
             onTap: _print,
@@ -331,8 +348,11 @@ class _PreviewScreenState extends State<PreviewScreen>
           Center(
             child: Text(
               'MyReceipt · ${DateTime.now().year}',
-              style: GoogleFonts.lato(
-                  fontSize: 9, letterSpacing: 3, color: _C.border),
+              style: const TextStyle(
+                  fontFamily: 'PoppinsMedium',
+                  fontSize: 9,
+                  letterSpacing: 3,
+                  color: _C.border),
             ),
           ),
         ],
@@ -358,8 +378,8 @@ class _PhotoStrip extends StatelessWidget {
         separatorBuilder: (_, __) => const SizedBox(width: 6),
         itemBuilder: (_, i) => ClipRRect(
           borderRadius: BorderRadius.circular(3),
-          child: Image.memory(photos[i],
-              width: 52, height: 52, fit: BoxFit.cover),
+          child:
+              Image.memory(photos[i], width: 52, height: 52, fit: BoxFit.cover),
         ),
       ),
     );
@@ -456,7 +476,8 @@ class _ActionButtonState extends State<_ActionButton>
               const SizedBox(width: 10),
               Text(
                 widget.label,
-                style: GoogleFonts.lato(
+                style: TextStyle(
+                  fontFamily: 'PoppinsMedium',
                   fontSize: 11,
                   letterSpacing: 3,
                   fontWeight: FontWeight.w600,

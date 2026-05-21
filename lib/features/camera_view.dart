@@ -3,7 +3,7 @@ import 'dart:js_interop';
 import 'dart:typed_data';
 import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+
 import 'package:provider/provider.dart';
 import 'package:web/web.dart' as web;
 import '../services/photobooth_provider.dart';
@@ -208,7 +208,8 @@ class CameraViewState extends State<CameraView>
                     const SizedBox(height: 20),
                     Text(
                       'STARTING CAMERA',
-                      style: GoogleFonts.lato(
+                      style: const TextStyle(
+                          fontFamily: 'PoppinsMedium',
                           fontSize: 10, letterSpacing: 4, color: Colors.white54),
                     ),
                   ],
@@ -252,7 +253,8 @@ class CameraViewState extends State<CameraView>
                       ),
                       child: Text(
                         'PHOTO  ${provider.capturedCount + (_isCapturing ? 1 : 0)}  /  ${provider.totalRequired}',
-                        style: GoogleFonts.lato(
+                        style: const TextStyle(
+                          fontFamily: 'PoppinsMedium',
                           fontSize: 11,
                           letterSpacing: 3,
                           color: Colors.white,
@@ -276,7 +278,8 @@ class CameraViewState extends State<CameraView>
                   child: Center(
                     child: Text(
                       '$_countdown',
-                      style: GoogleFonts.cormorantGaramond(
+                      style: TextStyle(
+                        fontFamily: 'PoppinsMedium',
                         fontSize: 280,
                         fontWeight: FontWeight.w300,
                         fontStyle: FontStyle.italic,
