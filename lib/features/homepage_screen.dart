@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+
 import 'package:provider/provider.dart';
 import '../services/photobooth_provider.dart';
 
@@ -87,7 +87,8 @@ class _HomepageScreenState extends State<HomepageScreen>
                 const SizedBox(height: 8),
                 Text(
                   'YOUR PERFECT MOMENT AWAITS',
-                  style: GoogleFonts.lato(
+                  style: TextStyle(
+                    fontFamily: 'PoppinsMedium',
                     fontSize: 11,
                     letterSpacing: 5,
                     color: Colors.white.withValues(alpha: 0.75),
@@ -165,11 +166,12 @@ class _StartButtonState extends State<_StartButton>
           child: Center(
             child: Text(
               'START',
-              style: GoogleFonts.lato(
+              style: const TextStyle(
+                fontFamily: 'PoppinsMedium',
                 fontSize: 14,
                 letterSpacing: 6,
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFF1A1A1A),
+                color: Color(0xFF1A1A1A),
               ),
             ),
           ),

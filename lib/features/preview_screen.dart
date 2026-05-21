@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+
 import 'package:provider/provider.dart';
 import '../models/photo_models.dart';
 import '../services/image_processor.dart';
@@ -90,7 +90,7 @@ class _PreviewScreenState extends State<PreviewScreen>
           SnackBar(
             content: Text(
               'Sent to XPrinter ✓',
-              style: GoogleFonts.lato(letterSpacing: 1),
+              style: const TextStyle(fontFamily: 'PoppinsMedium', letterSpacing: 1),
             ),
             backgroundColor: const Color(0xFF1E3A1E),
             behavior: SnackBarBehavior.floating,
@@ -121,7 +121,7 @@ class _PreviewScreenState extends State<PreviewScreen>
       SnackBar(
         content: Text(
           message,
-          style: GoogleFonts.lato(letterSpacing: 0.5),
+          style: const TextStyle(fontFamily: 'PoppinsMedium', letterSpacing: 0.5),
         ),
         backgroundColor: _C.danger,
         behavior: SnackBarBehavior.floating,
@@ -182,7 +182,8 @@ class _PreviewScreenState extends State<PreviewScreen>
             const SizedBox(height: 24),
             Text(
               'COMPOSITING YOUR PHOTOS',
-              style: GoogleFonts.lato(
+              style: const TextStyle(
+                  fontFamily: 'PoppinsMedium',
                   fontSize: 10, letterSpacing: 4, color: _C.muted),
             ),
           ],
@@ -199,9 +200,9 @@ class _PreviewScreenState extends State<PreviewScreen>
             children: [
               const Icon(Icons.error_outline, color: _C.danger, size: 48),
               const SizedBox(height: 16),
-              Text('Compositing failed', style: GoogleFonts.lato(color: _C.text)),
+              Text('Compositing failed', style: const TextStyle(fontFamily: 'PoppinsMedium', color: _C.text)),
               const SizedBox(height: 8),
-              Text(_error!, style: GoogleFonts.lato(color: _C.muted, fontSize: 12)),
+              Text(_error!, style: const TextStyle(fontFamily: 'PoppinsMedium', color: _C.muted, fontSize: 12)),
             ],
           ),
         ),
@@ -244,7 +245,8 @@ class _PreviewScreenState extends State<PreviewScreen>
         children: [
           Text(
             'YOUR PHOTOS',
-            style: GoogleFonts.lato(
+            style: const TextStyle(
+              fontFamily: 'PoppinsMedium',
               fontSize: 9,
               letterSpacing: 5,
               color: _C.accent,
@@ -253,7 +255,8 @@ class _PreviewScreenState extends State<PreviewScreen>
           const SizedBox(height: 12),
           Text(
             'Preview',
-            style: GoogleFonts.cormorantGaramond(
+            style: const TextStyle(
+              fontFamily: 'PoppinsMedium',
               fontSize: 48,
               fontWeight: FontWeight.w300,
               fontStyle: FontStyle.italic,
@@ -268,7 +271,8 @@ class _PreviewScreenState extends State<PreviewScreen>
           // Layout name
           Text(
             provider.selectedLayout.label,
-            style: GoogleFonts.cormorant(
+            style: const TextStyle(
+              fontFamily: 'PoppinsMedium',
               fontSize: 16,
               fontStyle: FontStyle.italic,
               color: _C.muted,
@@ -276,7 +280,8 @@ class _PreviewScreenState extends State<PreviewScreen>
           ),
           Text(
             '${provider.capturedCount} photos captured',
-            style: GoogleFonts.lato(
+            style: const TextStyle(
+              fontFamily: 'PoppinsMedium',
               fontSize: 10,
               letterSpacing: 2,
               color: _C.muted,
@@ -331,7 +336,8 @@ class _PreviewScreenState extends State<PreviewScreen>
           Center(
             child: Text(
               'MyReceipt · ${DateTime.now().year}',
-              style: GoogleFonts.lato(
+              style: const TextStyle(
+                  fontFamily: 'PoppinsMedium',
                   fontSize: 9, letterSpacing: 3, color: _C.border),
             ),
           ),
@@ -456,7 +462,8 @@ class _ActionButtonState extends State<_ActionButton>
               const SizedBox(width: 10),
               Text(
                 widget.label,
-                style: GoogleFonts.lato(
+                style: TextStyle(
+                  fontFamily: 'PoppinsMedium',
                   fontSize: 11,
                   letterSpacing: 3,
                   fontWeight: FontWeight.w600,

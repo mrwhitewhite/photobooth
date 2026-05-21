@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/photo_models.dart';
 import '../services/photobooth_provider.dart';
@@ -105,7 +104,8 @@ class _Header extends StatelessWidget {
             children: [
               Text(
                 'SELECT YOUR FORMAT',
-                style: GoogleFonts.lato(
+                style: const TextStyle(
+                  fontFamily: 'CHAOS16',
                   fontSize: 10,
                   letterSpacing: 5,
                   color: _C.accent,
@@ -115,10 +115,10 @@ class _Header extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 'Choose a Layout',
-                style: GoogleFonts.cormorantGaramond(
+                style: const TextStyle(
+                  fontFamily: 'CHAOS16',
                   fontSize: 48,
                   fontWeight: FontWeight.w300,
-                  fontStyle: FontStyle.italic,
                   color: _C.text,
                   height: 1.0,
                 ),
@@ -151,7 +151,8 @@ class _LayoutPreview extends StatelessWidget {
           // ── Layout name + details ──
           Text(
             layout.label.toUpperCase(),
-            style: GoogleFonts.lato(
+            style: const TextStyle(
+              fontFamily: 'CHAOS16',
               fontSize: 14,
               letterSpacing: 4,
               color: _C.text,
@@ -161,7 +162,8 @@ class _LayoutPreview extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             layout.subtitle,
-            style: GoogleFonts.cormorant(
+            style: const TextStyle(
+              fontFamily: 'CHAOS16',
               fontSize: 16,
               fontStyle: FontStyle.italic,
               color: _C.muted,
@@ -176,7 +178,8 @@ class _LayoutPreview extends StatelessWidget {
             ),
             child: Text(
               '${layout.photoCount} PHOTOS',
-              style: GoogleFonts.lato(
+              style: const TextStyle(
+                fontFamily: 'CHAOS16',
                 fontSize: 10,
                 letterSpacing: 2,
                 color: _C.accent,
@@ -384,7 +387,8 @@ class _ChooseButtonState extends State<_ChooseButton>
               children: [
                 Text(
                   'CHOOSE THIS LAYOUT',
-                  style: GoogleFonts.lato(
+                  style: const TextStyle(
+                    fontFamily: 'CHAOS16',
                     fontSize: 13,
                     letterSpacing: 4,
                     fontWeight: FontWeight.w700,

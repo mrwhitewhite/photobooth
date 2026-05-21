@@ -2,7 +2,7 @@ import 'dart:js_interop';
 import 'dart:math';
 import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+
 import 'package:provider/provider.dart';
 import 'package:web/web.dart' as web;
 import '../services/photobooth_provider.dart';
@@ -154,7 +154,8 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
                 const SizedBox(height: 32),
                 Text(
                   'TAP TO START',
-                  style: GoogleFonts.lato(
+                  style: TextStyle(
+                    fontFamily: 'PoppinsMedium',
                     fontSize: 13,
                     letterSpacing: 6,
                     color: Colors.white.withValues(alpha: 0.85),

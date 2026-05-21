@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import 'services/photobooth_provider.dart';
@@ -49,10 +48,11 @@ class MyReceiptApp extends StatelessWidget {
         surface: surface,
         onSurface: text,
       ),
-      textTheme: GoogleFonts.latoTextTheme(ThemeData.dark().textTheme).apply(
-        bodyColor: text,
-        displayColor: text,
-      ),
+      textTheme: ThemeData.dark().textTheme.apply(
+            fontFamily: 'PoppinsMedium',
+            bodyColor: text,
+            displayColor: text,
+          ),
       snackBarTheme: const SnackBarThemeData(
         backgroundColor: surface,
         contentTextStyle: TextStyle(color: text),
