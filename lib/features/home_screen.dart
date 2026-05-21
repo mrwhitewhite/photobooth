@@ -6,12 +6,12 @@ import '../services/photobooth_provider.dart';
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 class _C {
-  static const bg       = Color(0xFF0D0D0D);
-  static const surface  = Color(0xFF1A1A1A);
-  static const border   = Color(0xFF2E2E2E);
-  static const accent   = Color(0xFFE8C8A0);  // warm gold
-  static const text     = Color(0xFFF0EDE8);
-  static const muted    = Color(0xFF888480);
+  static const bg = Color(0xFF0D0D0D);
+  static const surface = Color(0xFF1A1A1A);
+  static const border = Color(0xFF2E2E2E);
+  static const accent = Color(0xFFE8C8A0); // warm gold
+  static const text = Color(0xFFF0EDE8);
+  static const muted = Color(0xFF888480);
 }
 
 class HomeScreen extends StatefulWidget {
@@ -228,7 +228,7 @@ class _BottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final canGoLeft  = currentIndex > 0;
+    final canGoLeft = currentIndex > 0;
     final canGoRight = currentIndex < total - 1;
 
     return Container(
@@ -283,9 +283,7 @@ class _NavArrowButtonState extends State<_NavArrowButton> {
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.enabled
-        ? (_pressed ? _C.accent : _C.text)
-        : _C.border;
+    final color = widget.enabled ? (_pressed ? _C.accent : _C.text) : _C.border;
 
     return GestureDetector(
       onTapDown: widget.enabled ? (_) => setState(() => _pressed = true) : null,
@@ -308,7 +306,8 @@ class _NavArrowButtonState extends State<_NavArrowButton> {
             width: 1,
           ),
           borderRadius: BorderRadius.circular(6),
-          color: _pressed ? _C.accent.withValues(alpha: 0.08) : Colors.transparent,
+          color:
+              _pressed ? _C.accent.withValues(alpha: 0.08) : Colors.transparent,
         ),
         child: Icon(widget.icon, color: color, size: 22),
       ),
@@ -367,9 +366,7 @@ class _ChooseButtonState extends State<_ChooseButton>
             duration: const Duration(milliseconds: 180),
             height: 56,
             decoration: BoxDecoration(
-              color: _hovered
-                  ? _C.accent
-                  : _C.accent.withValues(alpha: 0.9),
+              color: _hovered ? _C.accent : _C.accent.withValues(alpha: 0.9),
               borderRadius: BorderRadius.circular(6),
               boxShadow: _hovered
                   ? [
@@ -393,13 +390,7 @@ class _ChooseButtonState extends State<_ChooseButton>
                     fontWeight: FontWeight.w700,
                     color: _C.bg,
                   ),
-                ),
-                const SizedBox(width: 10),
-                Icon(
-                  Icons.arrow_forward_rounded,
-                  color: _C.bg,
-                  size: 18,
-                ),
+                )
               ],
             ),
           ),
