@@ -262,7 +262,7 @@ class ImageProcessor {
     boxes.addAll(active);
 
     final slotBoxes = boxes.where((box) {
-      final widthFrac = (box.xMax - box.xMin + 1) / width;
+      final widthFrac = (box.xMax - box.xMin + 1) / width; 
       final heightFrac = (box.yMax - box.yMin + 1) / height;
       return box.area > max(1000, width * height * 0.0001) &&
           widthFrac > 0.02 &&
