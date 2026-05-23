@@ -371,6 +371,22 @@ class _TemplateSlotView extends StatelessWidget {
       final offsetX = (screenW - tw) / 2;
       final offsetY = (screenH - th) / 2;
 
+      final activeIndex = provider.capturedCount;
+      final hasActiveSlot =
+          !provider.sessionComplete && activeIndex < slots.length;
+
+      // Active slot pixel rect (used for camera + border + countdown)
+      final double camLeft = hasActiveSlot
+          ? offsetX + slots[activeIndex].x * tw
+          : 0;
+      final double camTop = hasActiveSlot
+          ? offsetY + slots[activeIndex].y * th
+          : 0;
+      final double camW =
+          hasActiveSlot ? slots[activeIndex].w * tw : 0;
+      final double camH =
+          hasActiveSlot ? slots[activeIndex].h * th : 0;
+
       return Stack(
         children: [
           // ── Template PNG ─────────────────────────────────────────────────
@@ -382,16 +398,40 @@ class _TemplateSlotView extends StatelessWidget {
             child: Image.asset(layout.templateAsset, fit: BoxFit.fill),
           ),
 
-          // ── Slot widgets ─────────────────────────────────────────────────
+          // ── Slot overlays (captured photos + empty placeholders) ──────────
+          // NOTE: HtmlElementView is NOT here — it lives as a stable node below
           for (int i = 0; i < slots.length; i++)
             _buildSlotWidget(i, slots[i], tw, th, offsetX, offsetY),
 
-          // ── Countdown on active slot ──────────────────────────────────────
-          if (countdown > 0 && provider.capturedCount < slots.length)
-            _buildCountdownOverlay(
-                slots[provider.capturedCount], tw, th, offsetX, offsetY),
+          // ── CAMERA FEED — stable widget, only coordinates change ──────────
+          // Keeping HtmlElementView at a fixed position in the widget tree
+          // prevents Flutter Web from destroying/recreating the platform view
+          // when the active slot index changes.
+          if (hasActiveSlot)
+            Positioned(
+              left: camLeft,
+              top: camTop,
+              width: camW,
+              height: camH,
+              child: HtmlElementView(viewType: viewID),
+            ),
 
-          // ── Bottom hint label ─────────────────────────────────────────────
+          // ── Active slot pulsing gold border (above camera) ────────────────
+          if (hasActiveSlot)
+            Positioned(
+              left: camLeft,
+              top: camTop,
+              width: camW,
+              height: camH,
+              child: const _ActiveBorder(),
+            ),
+
+          // ── Countdown overlay on active slot ──────────────────────────────
+          if (countdown > 0 && hasActiveSlot)
+            _buildCountdownOverlay(
+                slots[activeIndex], tw, th, offsetX, offsetY),
+
+          // ── Bottom progress dots ──────────────────────────────────────────
           Positioned(
             bottom: 24,
             left: 0,
@@ -420,6 +460,10 @@ class _TemplateSlotView extends StatelessWidget {
     final isActive =
         index == provider.capturedCount && !provider.sessionComplete;
 
+    // Active slot: camera is rendered as a separate stable Positioned above;
+    // return an empty box here so it doesn't block the camera layer.
+    if (isActive) return const SizedBox.shrink();
+
     Widget content;
 
     if (isCaptured) {
@@ -429,19 +473,6 @@ class _TemplateSlotView extends StatelessWidget {
         fit: BoxFit.cover,
         width: width,
         height: height,
-      );
-    } else if (isActive) {
-      // ── Live camera feed in the active slot ──────────────────────────────
-      content = Stack(
-        fit: StackFit.expand,
-        children: [
-          // Camera feed
-          HtmlElementView(viewType: viewID),
-          // Gold animated border to highlight active slot
-          const Positioned.fill(
-            child: _ActiveBorder(),
-          ),
-        ],
       );
     } else {
       // ── Empty future slot ────────────────────────────────────────────────
