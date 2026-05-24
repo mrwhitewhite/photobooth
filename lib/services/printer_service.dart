@@ -52,8 +52,8 @@ class PrinterService {
   /// characteristic internally, so repeated [printReceipt] calls reuse
   /// the existing connection without showing the device picker again.
   static final WebBluetoothTransport _transport = WebBluetoothTransport(
-    chunkSize: 200,
-    interChunkDelayMs: 30,
+    chunkSize: 100,
+    interChunkDelayMs: 50,
   );
 
   // ── Public API ─────────────────────────────────────────────────────────
