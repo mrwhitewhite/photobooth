@@ -66,6 +66,12 @@ class PrinterService {
   /// Max bytes per BLE write packet (most printers handle 512 bytes fine).
   static const int _chunkSize = 512;
 
+  /// Max rows per raster band.  Most thermal printers have a small internal
+  /// raster buffer; sending too many rows in a single GS v 0 command causes
+  /// the printer to overlay rows (the "layered" artefact).  256 rows is a
+  /// safe upper limit for virtually all ESC/POS printers.
+  static const int _maxBandRows = 256;
+
   // ── Cached connection ────────────────────────────────────────────────────
 
   static _BluetoothRemoteGATTCharacteristic? _cachedCharacteristic;
@@ -155,8 +161,8 @@ class PrinterService {
         await characteristic.writeValueWithoutResponse(jsBuffer).toDart;
       }
       offset = end;
-      // Small delay between packets to avoid overflowing printer buffer.
-      await Future<void>.delayed(const Duration(milliseconds: 20));
+      // Delay between BLE packets to avoid overflowing printer buffer.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
     }
   }
 
@@ -218,33 +224,47 @@ class PrinterService {
     // Align center.
     out.add([0x1B, 0x61, 0x01]); // ESC a 1
 
-    // GS v 0 raster bitmap command.
-    // Format: GS v 0 m xL xH yL yH d1...dk
-    // m = 0 (normal density), x = bytes-per-row, y = rows
+    // ── Slice the image into horizontal bands ──────────────────────────────
+    // Many thermal printers have a small internal raster buffer.  Sending the
+    // entire image height in a single GS v 0 command overflows that buffer
+    // and causes rows to "layer" on top of each other.  By splitting the
+    // image into bands of at most _maxBandRows rows, each with its own
+    // GS v 0 header, the printer can process and advance the paper for each
+    // band independently.
     final bytesPerRow = (printW + 7) ~/ 8;
     final xL = bytesPerRow & 0xFF;
     final xH = (bytesPerRow >> 8) & 0xFF;
-    final yL = printH & 0xFF;
-    final yH = (printH >> 8) & 0xFF;
 
-    out.add([0x1D, 0x76, 0x30, 0x00, xL, xH, yL, yH]);
+    int rowsSent = 0;
+    while (rowsSent < printH) {
+      final bandRows = math.min(_maxBandRows, printH - rowsSent);
+      final yL = bandRows & 0xFF;
+      final yH = (bandRows >> 8) & 0xFF;
 
-    // Pack 1-bit rows.
-    for (int row = 0; row < printH; row++) {
-      for (int byteIdx = 0; byteIdx < bytesPerRow; byteIdx++) {
-        int b = 0;
-        for (int bit = 0; bit < 8; bit++) {
-          final col = byteIdx * 8 + bit;
-          if (col < printW) {
-            final pixelIndex = row * printW + col;
-            if (monoPixels[pixelIndex] == 0) {
-              // Black pixel → set bit (MSB first).
-              b |= (0x80 >> bit);
+      // GS v 0 raster bitmap command for this band.
+      // Format: GS v 0 m xL xH yL yH d1...dk
+      // m = 0 (normal density)
+      out.add([0x1D, 0x76, 0x30, 0x00, xL, xH, yL, yH]);
+
+      // Pack 1-bit rows for this band.
+      for (int row = rowsSent; row < rowsSent + bandRows; row++) {
+        for (int byteIdx = 0; byteIdx < bytesPerRow; byteIdx++) {
+          int b = 0;
+          for (int bit = 0; bit < 8; bit++) {
+            final col = byteIdx * 8 + bit;
+            if (col < printW) {
+              final pixelIndex = row * printW + col;
+              if (monoPixels[pixelIndex] == 0) {
+                // Black pixel → set bit (MSB first).
+                b |= (0x80 >> bit);
+              }
             }
           }
+          out.addByte(b);
         }
-        out.addByte(b);
       }
+
+      rowsSent += bandRows;
     }
 
     // Feed and cut.
