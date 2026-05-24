@@ -66,11 +66,20 @@ class PrinterService {
   /// Max bytes per BLE write packet (most printers handle 512 bytes fine).
   static const int _chunkSize = 512;
 
-  /// Max rows per raster band.  Most thermal printers have a small internal
-  /// raster buffer; sending too many rows in a single GS v 0 command causes
-  /// the printer to overlay rows (the "layered" artefact).  256 rows is a
-  /// safe upper limit for virtually all ESC/POS printers.
-  static const int _maxBandRows = 256;
+  /// Max rows per raster band.  Thermal printers have a small internal raster
+  /// buffer; sending too many rows in a single GS v 0 command causes the
+  /// printer to overlay rows (the "layered" artefact).  24 rows matches the
+  /// typical thermal print-head dot height — if layering persists, try
+  /// lowering to 8 or even 1.
+  static const int _maxBandRows = 24;
+
+  /// Milliseconds to wait between BLE write packets within a single band.
+  static const int _interChunkDelayMs = 50;
+
+  /// Milliseconds to wait between raster bands.  This gives the printer time
+  /// to physically print the band and advance the paper before receiving the
+  /// next GS v 0 command.  Increase to 300–500 if layering still occurs.
+  static const int _interBandDelayMs = 200;
 
   // ── Cached connection ────────────────────────────────────────────────────
 
@@ -89,11 +98,26 @@ class PrinterService {
     // 1. Get (or acquire) the BLE write characteristic.
     final characteristic = await _getCharacteristic();
 
-    // 2. Convert PNG → 1-bit raster → ESC/POS bytes.
-    final escBytes = await _buildEscPosJob(imageBytes, paperWidthPx);
+    // 2. Decode PNG → 1-bit dithered monochrome pixels.
+    final prepared = await _prepareImage(imageBytes, paperWidthPx);
 
-    // 3. Send in chunks.
-    await _sendChunked(characteristic, escBytes);
+    // 3. Send ESC/POS initialisation header.
+    await _sendChunked(characteristic, Uint8List.fromList([
+      0x1B, 0x40,             // ESC @   — reset / initialise printer
+      0x1B, 0x61, 0x01,       // ESC a 1 — center alignment
+      0x1B, 0x33, 0x00,       // ESC 3 0 — set line spacing to 0 (no gaps
+                              //           between raster bands)
+    ]));
+
+    // 4. Send image band-by-band with pauses for mechanical advance.
+    await _sendImageBands(characteristic, prepared);
+
+    // 5. Restore default line spacing, feed, and cut.
+    await _sendChunked(characteristic, Uint8List.fromList([
+      0x1B, 0x32,             // ESC 2   — restore default line spacing
+      0x1B, 0x64, 0x05,       // ESC d 5 — feed 5 lines
+      0x1D, 0x56, 0x42, 0x00, // GS V B 0 — partial cut
+    ]));
   }
 
   /// Disconnects the cached BLE device (if any) and forces a new device-picker
@@ -145,6 +169,8 @@ class PrinterService {
   /// accepts both short 16-bit ints and full 128-bit strings).
   static List<String> _shortUuidList(String uuid) => [uuid];
 
+  /// Sends [data] over BLE in [_chunkSize]-byte packets with a small delay
+  /// between each packet to avoid overflowing the printer's BLE buffer.
   static Future<void> _sendChunked(
     _BluetoothRemoteGATTCharacteristic characteristic,
     Uint8List data,
@@ -162,16 +188,19 @@ class PrinterService {
       }
       offset = end;
       // Delay between BLE packets to avoid overflowing printer buffer.
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await Future<void>.delayed(
+        const Duration(milliseconds: _interChunkDelayMs),
+      );
     }
   }
 
-  // ── ESC/POS raster image builder ─────────────────────────────────────────
+  // ── Image preparation ────────────────────────────────────────────────────
 
   /// Decodes the PNG, resizes it to [targetWidthPx] wide (preserving aspect),
-  /// converts to 1-bit monochrome using Atkinson dithering, then wraps in the
-  /// ESC/POS GS v 0 raster command sequence.
-  static Future<Uint8List> _buildEscPosJob(
+  /// and converts to 1-bit monochrome using Atkinson dithering.
+  ///
+  /// Returns a [_PreparedImage] containing the mono pixel data and dimensions.
+  static Future<_PreparedImage> _prepareImage(
     Uint8List pngBytes,
     int targetWidthPx,
   ) async {
@@ -215,61 +244,89 @@ class PrinterService {
     // Convert RGBA → 1-bit using Atkinson dithering.
     final monoPixels = _atkinsonDither(pixels, printW, printH);
 
-    // Build ESC/POS bytes.
-    final out = BytesBuilder();
+    return _PreparedImage(monoPixels: monoPixels, width: printW, height: printH);
+  }
 
-    // Initialize printer.
-    out.add([0x1B, 0x40]); // ESC @
+  // ── Band-by-band raster sending ─────────────────────────────────────────
 
-    // Align center.
-    out.add([0x1B, 0x61, 0x01]); // ESC a 1
-
-    // ── Slice the image into horizontal bands ──────────────────────────────
-    // Many thermal printers have a small internal raster buffer.  Sending the
-    // entire image height in a single GS v 0 command overflows that buffer
-    // and causes rows to "layer" on top of each other.  By splitting the
-    // image into bands of at most _maxBandRows rows, each with its own
-    // GS v 0 header, the printer can process and advance the paper for each
-    // band independently.
-    final bytesPerRow = (printW + 7) ~/ 8;
-    final xL = bytesPerRow & 0xFF;
-    final xH = (bytesPerRow >> 8) & 0xFF;
-
+  /// Sends the raster image in small bands, waiting [_interBandDelayMs]
+  /// between each band so the printer can physically print and advance the
+  /// paper.  This is the key fix for the "layered" artefact — the previous
+  /// approach packed all bands into one byte array and streamed it
+  /// continuously, which overflowed the printer's internal raster buffer.
+  static Future<void> _sendImageBands(
+    _BluetoothRemoteGATTCharacteristic characteristic,
+    _PreparedImage image,
+  ) async {
+    final bytesPerRow = (image.width + 7) ~/ 8;
     int rowsSent = 0;
-    while (rowsSent < printH) {
-      final bandRows = math.min(_maxBandRows, printH - rowsSent);
-      final yL = bandRows & 0xFF;
-      final yH = (bandRows >> 8) & 0xFF;
 
-      // GS v 0 raster bitmap command for this band.
-      // Format: GS v 0 m xL xH yL yH d1...dk
-      // m = 0 (normal density)
-      out.add([0x1D, 0x76, 0x30, 0x00, xL, xH, yL, yH]);
+    while (rowsSent < image.height) {
+      final bandRows = math.min(_maxBandRows, image.height - rowsSent);
 
-      // Pack 1-bit rows for this band.
-      for (int row = rowsSent; row < rowsSent + bandRows; row++) {
-        for (int byteIdx = 0; byteIdx < bytesPerRow; byteIdx++) {
-          int b = 0;
-          for (int bit = 0; bit < 8; bit++) {
-            final col = byteIdx * 8 + bit;
-            if (col < printW) {
-              final pixelIndex = row * printW + col;
-              if (monoPixels[pixelIndex] == 0) {
-                // Black pixel → set bit (MSB first).
-                b |= (0x80 >> bit);
-              }
-            }
-          }
-          out.addByte(b);
-        }
-      }
+      // Build this band's complete GS v 0 command + pixel data.
+      final bandBytes = _buildBand(
+        image.monoPixels,
+        image.width,
+        bytesPerRow,
+        rowsSent,
+        bandRows,
+      );
+
+      // Send this band over BLE (internally chunked with inter-chunk delays).
+      await _sendChunked(characteristic, bandBytes);
 
       rowsSent += bandRows;
-    }
 
-    // Feed and cut.
-    out.add([0x1B, 0x64, 0x05]); // ESC d 5  — feed 5 lines
-    out.add([0x1D, 0x56, 0x42, 0x00]); // GS V B 0 — partial cut
+      // ── Critical: wait for the printer to finish this band ──────────────
+      // Without this delay the printer receives the next GS v 0 command
+      // before it has finished processing (and physically advancing past)
+      // the current band, which causes row overlap / layering.
+      if (rowsSent < image.height) {
+        await Future<void>.delayed(
+          const Duration(milliseconds: _interBandDelayMs),
+        );
+      }
+    }
+  }
+
+  /// Builds one GS v 0 raster command containing [bandRows] rows of 1-bit
+  /// pixel data starting at [startRow].
+  static Uint8List _buildBand(
+    Uint8List monoPixels,
+    int width,
+    int bytesPerRow,
+    int startRow,
+    int bandRows,
+  ) {
+    final xL = bytesPerRow & 0xFF;
+    final xH = (bytesPerRow >> 8) & 0xFF;
+    final yL = bandRows & 0xFF;
+    final yH = (bandRows >> 8) & 0xFF;
+
+    final out = BytesBuilder();
+
+    // GS v 0 m xL xH yL yH d1...dk
+    // m = 0 → normal density, no scaling.
+    out.add([0x1D, 0x76, 0x30, 0x00, xL, xH, yL, yH]);
+
+    // Pack 1-bit pixel rows for this band.
+    for (int row = startRow; row < startRow + bandRows; row++) {
+      for (int byteIdx = 0; byteIdx < bytesPerRow; byteIdx++) {
+        int b = 0;
+        for (int bit = 0; bit < 8; bit++) {
+          final col = byteIdx * 8 + bit;
+          if (col < width) {
+            final pixelIndex = row * width + col;
+            if (monoPixels[pixelIndex] == 0) {
+              // Black pixel → set bit (MSB first).
+              b |= (0x80 >> bit);
+            }
+          }
+        }
+        out.addByte(b);
+      }
+    }
 
     return out.toBytes();
   }
@@ -320,6 +377,24 @@ class PrinterService {
 
     return out;
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Helper types
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Holds the 1-bit monochrome pixel data and image dimensions produced by
+/// [PrinterService._prepareImage].
+class _PreparedImage {
+  final Uint8List monoPixels;
+  final int width;
+  final int height;
+
+  const _PreparedImage({
+    required this.monoPixels,
+    required this.width,
+    required this.height,
+  });
 }
 
 // ── Exception type ────────────────────────────────────────────────────────────
