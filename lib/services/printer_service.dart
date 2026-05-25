@@ -10,7 +10,7 @@ class PrinterService {
 
   static final WebBluetoothTransport _transport = WebBluetoothTransport(
     chunkSize: 256,
-    interChunkDelayMs: 0,
+    interChunkDelayMs: 20,
   );
 
   static Future<void> printReceipt(
