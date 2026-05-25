@@ -106,7 +106,6 @@ class _PreviewScreenState extends State<PreviewScreen>
       }
     } catch (e) {
       if (mounted) {
-        // Clear cached BLE device so next tap shows the picker again.
         PrinterService.disconnect();
         _showPrintError(
           'Bluetooth error — tap PRINT again to reconnect.\n${e.toString()}',
@@ -149,7 +148,6 @@ class _PreviewScreenState extends State<PreviewScreen>
       backgroundColor: _C.bg,
       body: Row(
         children: [
-          // ── Left panel: composited image ──────────────────────────────────
           Expanded(
             flex: 6,
             child: Container(
@@ -157,9 +155,7 @@ class _PreviewScreenState extends State<PreviewScreen>
               child: _buildPreviewPanel(),
             ),
           ),
-          // ── Divider ───────────────────────────────────────────────────────
           Container(width: 1, color: _C.border),
-          // ── Right panel: actions ──────────────────────────────────────────
           SizedBox(
             width: 320,
             child: _buildActionPanel(provider),
@@ -253,15 +249,6 @@ class _PreviewScreenState extends State<PreviewScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Text(
-          //   'YOUR PHOTOS',
-          //   style: const TextStyle(
-          //     fontFamily: 'PoppinsMedium',
-          //     fontSize: 9,
-          //     letterSpacing: 5,
-          //     color: _C.accent,
-          //   ),
-          // ),
           const SizedBox(height: 12),
           Text(
             'Preview',
@@ -278,8 +265,6 @@ class _PreviewScreenState extends State<PreviewScreen>
           Container(
               width: 40, height: 1, color: _C.accent.withValues(alpha: 0.5)),
           const SizedBox(height: 20),
-
-          // Layout name
           Text(
             provider.selectedLayout.label,
             style: const TextStyle(
@@ -296,19 +281,12 @@ class _PreviewScreenState extends State<PreviewScreen>
               color: _C.muted,
             ),
           ),
-
-          // Photo thumbnails row
           if (provider.allPhotos.isNotEmpty) ...[
             const SizedBox(height: 24),
             _PhotoStrip(
                 photos: provider.allPhotos, layout: provider.selectedLayout),
           ],
-
           const Spacer(),
-
-          // ── Action buttons ────────────────────────────────────────────────
-
-          // Print — opens browser print dialog sized for XPrinter 80 mm roll
           _ActionButton(
             label: _isPrinting ? 'PRINTING…' : 'PRINT',
             icon: _isPrinting
@@ -319,8 +297,6 @@ class _PreviewScreenState extends State<PreviewScreen>
             onTap: _print,
           ),
           const SizedBox(height: 12),
-
-          // Download
           _ActionButton(
             label: 'DOWNLOAD',
             icon: Icons.download_rounded,
@@ -329,12 +305,8 @@ class _PreviewScreenState extends State<PreviewScreen>
             onTap: _download,
           ),
           const SizedBox(height: 24),
-
-          // Divider
           Container(height: 1, color: _C.border),
           const SizedBox(height: 24),
-
-          // Reset → screensaver
           _ActionButton(
             label: 'START OVER',
             icon: Icons.refresh_rounded,
@@ -343,7 +315,6 @@ class _PreviewScreenState extends State<PreviewScreen>
             danger: true,
             onTap: () => provider.reset(),
           ),
-
           const SizedBox(height: 32),
           Center(
             child: Text(
@@ -361,7 +332,6 @@ class _PreviewScreenState extends State<PreviewScreen>
   }
 }
 
-// ── Photo thumbnails strip ────────────────────────────────────────────────────
 class _PhotoStrip extends StatelessWidget {
   final List<Uint8List> photos;
   final PhotoLayout layout;
@@ -369,7 +339,6 @@ class _PhotoStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Show up to 8 thumbnails, scroll horizontally
     return SizedBox(
       height: 52,
       child: ListView.separated(
@@ -386,7 +355,6 @@ class _PhotoStrip extends StatelessWidget {
   }
 }
 
-// ── Action button ─────────────────────────────────────────────────────────────
 class _ActionButton extends StatefulWidget {
   final String label;
   final IconData icon;

@@ -17,9 +17,6 @@ void main() {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// App root
-// ─────────────────────────────────────────────────────────────────────────────
 class MyReceiptApp extends StatelessWidget {
   const MyReceiptApp({super.key});
 
@@ -61,9 +58,6 @@ class MyReceiptApp extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Shell — routes between all 5 app states
-// ─────────────────────────────────────────────────────────────────────────────
 class _AppShell extends StatelessWidget {
   const _AppShell();
 
