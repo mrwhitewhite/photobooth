@@ -9,7 +9,7 @@ class PrinterService {
   static String characteristicUuid = '00002af1-0000-1000-8000-00805f9b34fb';
 
   static final WebBluetoothTransport _transport = WebBluetoothTransport(
-    chunkSize: 512,
+    chunkSize: 1024,
     interChunkDelayMs: 5,
   );
 
