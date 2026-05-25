@@ -79,48 +79,32 @@ class ImageRasterizer {
   }
 
   // ── PNG decoding + multi-pass downscaling ─────────────────────────────────
-
-  /// Decodes a PNG from raw bytes into RGBA pixel data, resized to
-  /// [targetWidthPx] using a high-quality multi-pass downscaling algorithm.
-  ///
-  /// **Why multi-pass?**
-  /// A single-step large-ratio downscale (e.g. 3000px → 384px) causes
-  /// severe aliasing and blurring because the browser's canvas interpolation
-  /// is optimised for ratios close to 1.0.  By halving iteratively until
-  /// we're within 2× of the target, each step produces high-quality output.
-  ///
-  /// Each intermediate step uses:
-  ///   - `imageSmoothingEnabled = true`
-  ///   - `imageSmoothingQuality = 'high'`  (triggers Lanczos3 in Chromium)
   static Future<_RgbaImage> _decodePngToRgba(
     Uint8List pngBytes,
     int targetWidthPx,
   ) async {
-    // Create a Blob and object URL to load the PNG into an <img> element.
     final blob = web.Blob(
       [pngBytes.toJS].toJS,
       web.BlobPropertyBag(type: 'image/png'),
     );
     final objectUrl = web.URL.createObjectURL(blob);
 
-    // Load the image asynchronously.
     final img = web.HTMLImageElement();
-    final loadCompleter = Completer<void>();
-
-    img.onload = (web.Event event) {
-      loadCompleter.complete();
-    }.toJS;
-    img.onerror = (web.Event event) {
-      loadCompleter.completeError(
-        const ImageRasterizerException('PNG decode failed.'),
-      );
-    }.toJS;
-
     img.src = objectUrl;
-    await loadCompleter.future;
 
-    // Clean up the object URL immediately — the <img> has already decoded
-    // the pixel data into memory.
+    // FIX: Using Dart Streams is fully type-safe and avoids legacy .toJS function-wrapping assignment crashes
+    try {
+      await Future.any([
+        img.onLoad.first,
+        img.onError.first.then(
+            (_) => throw const ImageRasterizerException('PNG decode failed.')),
+      ]);
+    } catch (e) {
+      web.URL.revokeObjectURL(objectUrl);
+      rethrow;
+    }
+
+    // Clean up the object URL immediately
     web.URL.revokeObjectURL(objectUrl);
 
     final srcW = img.naturalWidth;
@@ -128,27 +112,13 @@ class ImageRasterizer {
 
     if (srcW == 0 || srcH == 0) {
       throw const ImageRasterizerException(
-        'Decoded image has zero dimensions.',
-      );
+          'Decoded image has zero dimensions.');
     }
 
     // ── Compute target dimensions (preserve aspect ratio) ───────────────
     final scale = targetWidthPx / srcW;
     final targetW = targetWidthPx;
     final targetH = (srcH * scale).round();
-
-    // ── Multi-pass step-down scaling ────────────────────────────────────
-    //
-    // Strategy:
-    //   1. Draw the full-resolution image onto an initial canvas.
-    //   2. While the current width is more than 2× the target, halve it
-    //      by drawing onto a new canvas at 50% size.
-    //   3. Final step: draw from the last intermediate size to the exact
-    //      target dimensions.
-    //
-    // Each step uses the browser's high-quality interpolation (Lanczos3
-    // in Chromium), which produces excellent results for ratios between
-    // 0.5 and 1.0.
 
     var currentW = srcW;
     var currentH = srcH;
@@ -170,7 +140,6 @@ class ImageRasterizer {
       nextCanvas.height = nextH;
       final nextCtx = _getHighQualityContext(nextCanvas);
 
-      // Draw the current canvas at half size onto the next canvas.
       nextCtx.drawImage(currentCanvas, 0, 0, nextW, nextH);
 
       currentCanvas = nextCanvas;
@@ -187,7 +156,7 @@ class ImageRasterizer {
 
     // Extract RGBA pixel data from the final canvas.
     final imageData = finalCtx.getImageData(0, 0, targetW, targetH);
-    final pixels = imageData.data.toDart; // Uint8ClampedList (RGBA)
+    final pixels = imageData.data.toDart;
 
     return _RgbaImage(pixels: pixels, width: targetW, height: targetH);
   }
