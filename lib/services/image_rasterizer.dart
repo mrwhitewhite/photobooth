@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math' show pow;
+import 'dart:math' show pow, min;
 import 'dart:typed_data';
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
@@ -232,40 +232,44 @@ class ImageRasterizer {
     int height,
   ) {
     final bytesPerRow = (width + 7) ~/ 8;
-    final pixelDataSize = bytesPerRow * height;
+    const int maxLinesPerSlice = 255;
 
-    final totalSize = 8 + pixelDataSize;
-    final payload = Uint8List(totalSize);
+    final BytesBuilder payloadBuilder = BytesBuilder();
 
-    payload[0] = 0x1D;
-    payload[1] = 0x76;
-    payload[2] = 0x30;
-    payload[3] = 0x00;
+    for (int startRow = 0; startRow < height; startRow += maxLinesPerSlice) {
+      final int linesInThisSlice = min(maxLinesPerSlice, height - startRow);
 
-    payload[4] = bytesPerRow & 0xFF;
-    payload[5] = (bytesPerRow >> 8) & 0xFF;
+      // GS v 0 header for this specific slice
+      payloadBuilder.add([
+        0x1D,
+        0x76,
+        0x30,
+        0x00,
+        bytesPerRow & 0xFF,
+        (bytesPerRow >> 8) & 0xFF,
+        linesInThisSlice & 0xFF,
+        (linesInThisSlice >> 8) & 0xFF,
+      ]);
 
-    payload[6] = height & 0xFF;
-    payload[7] = (height >> 8) & 0xFF;
-
-    int offset = 8;
-    for (int row = 0; row < height; row++) {
-      final rowBase = row * width;
-      for (int byteIdx = 0; byteIdx < bytesPerRow; byteIdx++) {
-        int packedByte = 0;
-        for (int bit = 0; bit < 8; bit++) {
-          final col = byteIdx * 8 + bit;
-          if (col < width) {
-            if (monoPixels[rowBase + col] == 0) {
-              packedByte |= (0x80 >> bit);
+      // Pack the bits for this slice
+      for (int row = 0; row < linesInThisSlice; row++) {
+        final rowBase = (startRow + row) * width;
+        for (int byteIdx = 0; byteIdx < bytesPerRow; byteIdx++) {
+          int packedByte = 0;
+          for (int bit = 0; bit < 8; bit++) {
+            final col = byteIdx * 8 + bit;
+            if (col < width) {
+              if (monoPixels[rowBase + col] == 0) {
+                packedByte |= (0x80 >> bit);
+              }
             }
           }
+          payloadBuilder.addByte(packedByte);
         }
-        payload[offset++] = packedByte;
       }
     }
 
-    return payload;
+    return payloadBuilder.toBytes();
   }
 }
 
