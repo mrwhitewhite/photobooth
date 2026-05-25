@@ -212,12 +212,12 @@ class ImageRasterizer {
       // Thermal paper tends to over-darken, so we lift the midtones
       // slightly before thresholding to preserve photo detail.
       // Gamma 0.85 brightens by ~10% — adjust between 0.75–1.0 to taste.
-      lum = 255.0 * pow((lum / 255.0).clamp(0.0, 1.0), 2.0).toDouble();
+      lum = 255.0 * pow((lum / 255.0).clamp(0.0, 1.0), 1.5).toDouble();
 
       // ── Step C: Contrast boost ────────────────────────────────────────
       // Pulls shadows darker and highlights brighter by a fixed amount.
       // Factor: 1.25 gives a noticeable but not excessive contrast lift.
-      const factor = 3.25; // 1.0 = no change, >1.0 increases contrast
+      const factor = 2.25; // 1.0 = no change, >1.0 increases contrast
       lum = ((lum - 128.0) * factor + 128.0).clamp(0.0, 255.0);
 
       grey[i] = lum;
