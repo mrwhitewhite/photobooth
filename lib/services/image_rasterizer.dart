@@ -157,9 +157,11 @@ class ImageRasterizer {
 
       lum = 255.0 * pow((lum / 255.0).clamp(0.0, 1.0), 2.0).toDouble();
 
-      const factor = 3.25;
-      lum = ((lum - 128.0) * factor + 128.0).clamp(0.0, 255.0);
+      const contrastFactor = 2.5;
+      const brightnessOffset = 40.0;
 
+      lum = ((lum - 128.0) * contrastFactor + 128.0 + brightnessOffset)
+          .clamp(0.0, 255.0);
       grey[i] = lum;
     }
 
