@@ -8,22 +8,29 @@ class PrinterService {
 
   static String characteristicUuid = '00002af1-0000-1000-8000-00805f9b34fb';
 
-  static final WebBluetoothTransport _transport = WebBluetoothTransport(
-    chunkSize: 256,
-    interChunkDelayMs: 20,
-  );
-
   static Future<void> printReceipt(
     Uint8List imageBytes, {
     int paperWidthPx = 576,
   }) async {
     try {
-      await _transport.connect(
+      // Chunk size must be a multiple of bytesPerRow so BLE packet boundaries
+      // never split a raster row. Splitting mid-row causes the thermal head to
+      // pause inside a row, producing visible horizontal banding.
+      // 5 rows per chunk is a good balance of throughput and safety margin.
+      final rowBytes = ImageRasterizer.bytesPerRow(paperWidthPx);
+      final alignedChunkSize = rowBytes * 5; // e.g. 72 * 5 = 360 for 576px
+
+      final transport = WebBluetoothTransport(
+        chunkSize: alignedChunkSize,
+        interChunkDelayMs: 20,
+      );
+
+      await transport.connect(
         serviceUuid: serviceUuid,
         characteristicUuid: characteristicUuid,
       );
 
-      await _transport.sendData(ImageRasterizer.buildInitCommand());
+      await transport.sendData(ImageRasterizer.buildInitCommand());
 
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
@@ -32,10 +39,10 @@ class PrinterService {
         paperWidthPx: paperWidthPx,
       );
 
-      await _transport.sendData(rasterPayload);
+      await transport.sendData(rasterPayload);
 
       await Future<void>.delayed(const Duration(milliseconds: 500));
-      await _transport.sendData(ImageRasterizer.buildFeedCutCommand());
+      await transport.sendData(ImageRasterizer.buildFeedCutCommand());
     } on PrinterTransportException catch (e) {
       throw PrinterException(e.message);
     } on ImageRasterizerException catch (e) {
@@ -44,7 +51,7 @@ class PrinterService {
   }
 
   static void disconnect() {
-    _transport.disconnect();
+    // Transport is created per-print; nothing to disconnect statically.
   }
 }
 

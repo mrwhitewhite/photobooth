@@ -18,6 +18,11 @@ class ImageRasterizer {
     return _buildGsV0Payload(mono, rgba.width, rgba.height);
   }
 
+  /// Returns the number of bytes per raster row for a given paper width.
+  /// Use this to compute a BLE chunk size that is always row-aligned,
+  /// which prevents mid-row chunk boundaries causing thermal banding.
+  static int bytesPerRow(int paperWidthPx) => (paperWidthPx + 7) ~/ 8;
+
   static Uint8List buildInitCommand() {
     return Uint8List.fromList([
       0x1B,
@@ -174,7 +179,8 @@ class ImageRasterizer {
         final err = oldPixel - newPixel;
 
         if (x + 1 < width) {
-          grey[idx + 1] = (grey[idx + 1] + err * 7.0 / 16.0).clamp(0.0, 255.0);
+          grey[idx + 1] =
+              (grey[idx + 1] + err * 7.0 / 16.0).clamp(0.0, 255.0);
         }
         if (y + 1 < height && x - 1 >= 0) {
           grey[(y + 1) * width + (x - 1)] =
@@ -183,7 +189,8 @@ class ImageRasterizer {
         }
         if (y + 1 < height) {
           grey[(y + 1) * width + x] =
-              (grey[(y + 1) * width + x] + err * 5.0 / 16.0).clamp(0.0, 255.0);
+              (grey[(y + 1) * width + x] + err * 5.0 / 16.0)
+                  .clamp(0.0, 255.0);
         }
         if (y + 1 < height && x + 1 < width) {
           grey[(y + 1) * width + (x + 1)] =
