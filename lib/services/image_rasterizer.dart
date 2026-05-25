@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math' show min;
+
 import 'dart:typed_data';
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
@@ -202,40 +202,35 @@ class ImageRasterizer {
     int height,
   ) {
     final bytesPerRow = (width + 7) ~/ 8;
-    const int maxLinesPerSlice = 255;
 
     final BytesBuilder payloadBuilder = BytesBuilder();
 
-    for (int startRow = 0; startRow < height; startRow += maxLinesPerSlice) {
-      final int linesInThisSlice = min(maxLinesPerSlice, height - startRow);
+    // Single GS v 0 command for the entire image (no slicing).
+    // Height field is 16-bit so supports up to 65535 lines.
+    payloadBuilder.add([
+      0x1D,
+      0x76,
+      0x30,
+      0x00,
+      bytesPerRow & 0xFF,
+      (bytesPerRow >> 8) & 0xFF,
+      height & 0xFF,
+      (height >> 8) & 0xFF,
+    ]);
 
-      // GS v 0 header for this specific slice
-      payloadBuilder.add([
-        0x1D,
-        0x76,
-        0x30,
-        0x00,
-        bytesPerRow & 0xFF,
-        (bytesPerRow >> 8) & 0xFF,
-        linesInThisSlice & 0xFF,
-        (linesInThisSlice >> 8) & 0xFF,
-      ]);
-
-      // Pack the bits for this slice
-      for (int row = 0; row < linesInThisSlice; row++) {
-        final rowBase = (startRow + row) * width;
-        for (int byteIdx = 0; byteIdx < bytesPerRow; byteIdx++) {
-          int packedByte = 0;
-          for (int bit = 0; bit < 8; bit++) {
-            final col = byteIdx * 8 + bit;
-            if (col < width) {
-              if (monoPixels[rowBase + col] == 0) {
-                packedByte |= (0x80 >> bit);
-              }
+    for (int row = 0; row < height; row++) {
+      final rowBase = row * width;
+      for (int byteIdx = 0; byteIdx < bytesPerRow; byteIdx++) {
+        int packedByte = 0;
+        for (int bit = 0; bit < 8; bit++) {
+          final col = byteIdx * 8 + bit;
+          if (col < width) {
+            if (monoPixels[rowBase + col] == 0) {
+              packedByte |= (0x80 >> bit);
             }
           }
-          payloadBuilder.addByte(packedByte);
         }
+        payloadBuilder.addByte(packedByte);
       }
     }
 
