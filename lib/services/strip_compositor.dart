@@ -10,7 +10,7 @@ external JSString _createObjectURL(web.Blob blob);
 external void _revokeObjectURL(String url);
 
 class StripCompositor {
-  static const double _stripW = 600.0;
+  static const double _stripW = 1200.0;
   static const double _stripH = 1800.0;
   static const double _padding = 20.0;
   static const double _borderRadius = 8.0;
