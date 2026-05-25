@@ -52,8 +52,9 @@ class PrinterService {
   /// characteristic internally, so repeated [printReceipt] calls reuse
   /// the existing connection without showing the device picker again.
   static final WebBluetoothTransport _transport = WebBluetoothTransport(
-    chunkSize: 100,
-    interChunkDelayMs: 50,
+    chunkSize: 512, // Max out MTU payload size
+    interChunkDelayMs:
+        5, // Drop this to a bare minimum or 0 if your transport uses `await` on writes
   );
 
   // ── Public API ─────────────────────────────────────────────────────────
@@ -106,7 +107,7 @@ class PrinterService {
       // 5. Feed paper and cut.
       //    Wait for the printer to finish processing the last raster
       //    chunks before sending the feed+cut command.
-      await Future<void>.delayed(const Duration(milliseconds: 200));
+      await Future<void>.delayed(const Duration(milliseconds: 500));
       await _transport.sendData(ImageRasterizer.buildFeedCutCommand());
     } on PrinterTransportException catch (e) {
       throw PrinterException(e.message);

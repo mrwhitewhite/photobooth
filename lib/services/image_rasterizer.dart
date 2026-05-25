@@ -57,7 +57,9 @@ class ImageRasterizer {
   /// is in a known state.
   static Uint8List buildInitCommand() {
     return Uint8List.fromList([
-      0x1B, 0x40, //       ESC @ — hardware reset
+      0x1B, 0x40, // ESC @ — hardware reset
+      0x1B, 0x33,
+      0x00, // ESC 3 0 — Set line spacing to 0 dots (CRITICAL FOR GRAPHICS)
       0x1B, 0x61, 0x01, // ESC a 1 — center alignment
     ]);
   }
@@ -73,7 +75,8 @@ class ImageRasterizer {
   /// past the cutter blade and perform a partial cut.
   static Uint8List buildFeedCutCommand() {
     return Uint8List.fromList([
-      0x1B, 0x64, 0x05, //       ESC d 5 — feed 5 lines
+      0x1B, 0x32, // ESC 2 — Restore default line spacing
+      0x1B, 0x64, 0x05, // ESC d 5 — feed 5 lines
       0x1D, 0x56, 0x42, 0x00, // GS V B 0 — partial cut
     ]);
   }
