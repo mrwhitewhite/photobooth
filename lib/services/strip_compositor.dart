@@ -22,8 +22,7 @@ class StripCompositor {
     canvas.height = _stripH.toInt();
     final ctx = canvas.context2D;
 
-    // Fill Background (#1A1208 Art-Deco Surface)
-    ctx.fillStyle = '#1A1208'.toJS; // FillStyle still needs toJS for the string
+    ctx.fillStyle = '#1A1208'.toJS;
     ctx.fillRect(0, 0, _stripW, _stripH);
 
     final int count = photos.length;
@@ -61,28 +60,16 @@ class StripCompositor {
       _drawRoundedRect(ctx, x, y, slotW, slotH, _borderRadius);
       ctx.clip();
 
-      // FIX: Numerical arguments do NOT need .toJS
-      ctx.drawImage(
-          img,
-          sx,
-          sy,
-          sw,
-          sh, // Source
-          x,
-          y,
-          slotW,
-          slotH // Destination
-          );
+      ctx.drawImage(img, sx, sy, sw, sh, x, y, slotW, slotH);
 
       ctx.restore();
       _revokeObjectURL(url);
     }
 
-    // Draw Watermark
     ctx.fillStyle = 'rgba(232, 196, 160, 0.5)'.toJS;
     ctx.font = '24px "Playfair Display"';
     ctx.textAlign = 'center';
-    // FIX: Coordinates do not need .toJS[cite: 1]
+
     ctx.fillText('✦ SnapBooth ✦', _stripW / 2, _stripH - 40);
 
     final completer = Completer<Uint8List>();

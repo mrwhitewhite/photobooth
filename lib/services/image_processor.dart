@@ -6,41 +6,30 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:web/web.dart' as web;
 import '../models/photo_models.dart';
 
-/// Canvas-based image compositing engine.
-/// Renders captured photos into template slots, then overlays the transparent
-/// template PNG on top so its opaque frame/border covers photo edges.
 class ImageProcessor {
-  // Offscreen canvas dimensions (high-res output)
   static const double _outputW = 2048.0;
   static const double _outputH = 2048.0;
 
-  /// Composite [photos] using [layout]'s template PNG and slot definitions.
-  /// Returns PNG bytes of the final merged image.
   static Future<Uint8List> composite({
     required List<Uint8List> photos,
     required PhotoLayout layout,
   }) async {
-    // 1. Load template PNG from Flutter assets → HTMLImageElement
     final templateImg = await _loadAssetImage(layout.templateAsset);
     final double templateW = templateImg.naturalWidth.toDouble();
     final double templateH = templateImg.naturalHeight.toDouble();
 
-    // Use template's natural dimensions as canvas size for pixel-perfect output
     final double canvasW = templateW > 0 ? templateW : _outputW;
     final double canvasH = templateH > 0 ? templateH : _outputH;
 
-    // 2. Create offscreen canvas
     final canvas =
         web.document.createElement('canvas') as web.HTMLCanvasElement;
     canvas.width = canvasW.toInt();
     canvas.height = canvasH.toInt();
     final ctx = canvas.context2D;
 
-    // 3. Fill background (white — template transparent areas will show this)
     ctx.fillStyle = '#FFFFFF'.toJS;
     ctx.fillRect(0, 0, canvasW, canvasH);
 
-    // 4. Detect the template's transparent photo slots from its alpha channel.
     final templateCanvas =
         web.document.createElement('canvas') as web.HTMLCanvasElement;
     templateCanvas.width = canvasW.toInt();
@@ -60,8 +49,6 @@ class ImageProcessor {
       final double slotW = slot.w * canvasW;
       final double slotH = slot.h * canvasH;
 
-      // Use cover-fit for layouts that need the photo to match the template
-      // shape by cropping instead of leaving blank edges.
       final fit = _shouldCoverFit(layout)
           ? _coverFit(
               photoImg.naturalWidth.toDouble(),
@@ -77,7 +64,7 @@ class ImageProcessor {
             );
 
       ctx.save();
-      // Clip to slot rectangle so photo doesn't bleed outside
+
       ctx.beginPath();
       ctx.rect(slotX, slotY, slotW, slotH);
       ctx.clip();
@@ -87,7 +74,7 @@ class ImageProcessor {
         0,
         0,
         photoImg.naturalWidth.toDouble(),
-        photoImg.naturalHeight.toDouble(), // source
+        photoImg.naturalHeight.toDouble(),
         slotX + fit.offsetX,
         slotY + fit.offsetY,
         fit.width,
@@ -96,26 +83,18 @@ class ImageProcessor {
       ctx.restore();
     }
 
-    // 5. Draw template PNG on top — transparent holes reveal photos below
     ctx.drawImage(templateImg, 0, 0, canvasW, canvasH);
 
-    // 6. Read canvas as PNG bytes
     return _canvasToBytes(canvas);
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
-
-  /// Load a Flutter asset by path into an HTMLImageElement.
   static Future<web.HTMLImageElement> _loadAssetImage(String assetPath) async {
     final byteData = await rootBundle.load(assetPath);
     final bytes = byteData.buffer.asUint8List();
     return _loadBytesImage(bytes);
   }
 
-  /// Convert raw PNG/JPEG bytes into an HTMLImageElement via Blob URL.
-  /// Detects PNG vs JPEG by magic bytes so the browser gets the correct MIME type.
   static Future<web.HTMLImageElement> _loadBytesImage(Uint8List bytes) async {
-    // Detect format: PNG starts with 0x89504E47, JPEG with 0xFFD8FF
     final isPng = bytes.length > 4 &&
         bytes[0] == 0x89 &&
         bytes[1] == 0x50 &&
@@ -141,8 +120,6 @@ class ImageProcessor {
     return completer.future;
   }
 
-  /// Compute destination rectangle for a contained image fit inside the slot.
-  /// This preserves the full photo and centers it, leaving blank edges if needed.
   static _FitResult _containFit(
     double srcW,
     double srcH,
@@ -262,7 +239,7 @@ class ImageProcessor {
     boxes.addAll(active);
 
     final slotBoxes = boxes.where((box) {
-      final widthFrac = (box.xMax - box.xMin + 1) / width; 
+      final widthFrac = (box.xMax - box.xMin + 1) / width;
       final heightFrac = (box.yMax - box.yMin + 1) / height;
       return box.area > max(1000, width * height * 0.0001) &&
           widthFrac > 0.02 &&
@@ -274,7 +251,6 @@ class ImageProcessor {
     }
 
     slotBoxes.sort((a, b) {
-      // Pick the largest visible slots first, then normalize order.
       final sizeCompare = b.area.compareTo(a.area);
       if (sizeCompare != 0) return sizeCompare;
       final rowCompare = a.yMin.compareTo(b.yMin);
@@ -297,7 +273,6 @@ class ImageProcessor {
     }).toList();
   }
 
-  /// Render canvas to PNG bytes via toBlob → FileReader.
   static Future<Uint8List> _canvasToBytes(web.HTMLCanvasElement canvas) {
     final completer = Completer<Uint8List>();
     canvas.toBlob(
@@ -314,7 +289,6 @@ class ImageProcessor {
     return completer.future;
   }
 
-  /// Trigger a browser file download of [bytes] as [filename].
   static void downloadFile(Uint8List bytes, String filename) {
     final blob = web.Blob([bytes.toJS].toJS);
     final url = web.URL.createObjectURL(blob);
