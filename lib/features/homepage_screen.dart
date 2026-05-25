@@ -153,10 +153,10 @@ class _StartButtonState extends State<_StartButton>
                 right: BorderSide(color: Color(0xFF808080), width: 4),
               ),
             ),
-            child: Center(
+            child: const Center(
               child: Text(
                 'Start',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'CHAOS16',
                   fontSize: 24,
                   color: Colors.black,

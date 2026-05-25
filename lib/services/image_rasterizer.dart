@@ -176,21 +176,25 @@ class ImageRasterizer {
           out[idx] = newPixel.toInt();
           final err = oldPixel - newPixel;
 
-          if (x + 1 < width)
+          if (x + 1 < width) {
             grey[idx + 1] =
                 (grey[idx + 1] + err * 7.0 / 16.0).clamp(0.0, 255.0);
-          if (y + 1 < height && x - 1 >= 0)
+          }
+          if (y + 1 < height && x - 1 >= 0) {
             grey[(y + 1) * width + (x - 1)] =
                 (grey[(y + 1) * width + (x - 1)] + err * 3.0 / 16.0)
                     .clamp(0.0, 255.0);
-          if (y + 1 < height)
+          }
+          if (y + 1 < height) {
             grey[(y + 1) * width + x] =
                 (grey[(y + 1) * width + x] + err * 5.0 / 16.0)
                     .clamp(0.0, 255.0);
-          if (y + 1 < height && x + 1 < width)
+          }
+          if (y + 1 < height && x + 1 < width) {
             grey[(y + 1) * width + (x + 1)] =
                 (grey[(y + 1) * width + (x + 1)] + err * 1.0 / 16.0)
                     .clamp(0.0, 255.0);
+          }
         }
       } else {
         for (int x = width - 1; x >= 0; x--) {
@@ -200,23 +204,27 @@ class ImageRasterizer {
           out[idx] = newPixel.toInt();
           final err = oldPixel - newPixel;
 
-          if (x - 1 >= 0)
+          if (x - 1 >= 0) {
             grey[idx - 1] =
                 (grey[idx - 1] + err * 7.0 / 16.0).clamp(0.0, 255.0);
+          }
 
-          if (y + 1 < height && x + 1 < width)
+          if (y + 1 < height && x + 1 < width) {
             grey[(y + 1) * width + (x + 1)] =
                 (grey[(y + 1) * width + (x + 1)] + err * 3.0 / 16.0)
                     .clamp(0.0, 255.0);
-          if (y + 1 < height)
+          }
+          if (y + 1 < height) {
             grey[(y + 1) * width + x] =
                 (grey[(y + 1) * width + x] + err * 5.0 / 16.0)
                     .clamp(0.0, 255.0);
+          }
 
-          if (y + 1 < height && x - 1 >= 0)
+          if (y + 1 < height && x - 1 >= 0) {
             grey[(y + 1) * width + (x - 1)] =
                 (grey[(y + 1) * width + (x - 1)] + err * 1.0 / 16.0)
                     .clamp(0.0, 255.0);
+          }
         }
       }
     }

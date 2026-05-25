@@ -87,16 +87,16 @@ class _PreviewScreenState extends State<PreviewScreen>
       await PrinterService.printReceipt(_composite!);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text(
               'Sent to XPrinter ✓',
-              style: const TextStyle(
+              style: TextStyle(
                   fontFamily: 'PoppinsMedium', letterSpacing: 1),
             ),
-            backgroundColor: const Color(0xFF1E3A1E),
+            backgroundColor: Color(0xFF1E3A1E),
             behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.all(16),
-            duration: const Duration(seconds: 3),
+            margin: EdgeInsets.all(16),
+            duration: Duration(seconds: 3),
           ),
         );
       }
@@ -167,20 +167,20 @@ class _PreviewScreenState extends State<PreviewScreen>
 
   Widget _buildPreviewPanel() {
     if (_isCompositing) {
-      return Center(
+      return const Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(
+            SizedBox(
               width: 48,
               height: 48,
               child:
                   CircularProgressIndicator(color: _C.accent, strokeWidth: 1.5),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             Text(
               'COMPOSITING YOUR PHOTOS',
-              style: const TextStyle(
+              style: TextStyle(
                   fontFamily: 'PoppinsMedium',
                   fontSize: 10,
                   letterSpacing: 4,
@@ -200,8 +200,8 @@ class _PreviewScreenState extends State<PreviewScreen>
             children: [
               const Icon(Icons.error_outline, color: _C.danger, size: 48),
               const SizedBox(height: 16),
-              Text('Compositing failed',
-                  style: const TextStyle(
+              const Text('Compositing failed',
+                  style: TextStyle(
                       fontFamily: 'PoppinsMedium', color: _C.text)),
               const SizedBox(height: 8),
               Text(_error!,
@@ -250,9 +250,9 @@ class _PreviewScreenState extends State<PreviewScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 12),
-          Text(
+          const Text(
             'Preview',
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'CHAOS16',
               fontSize: 48,
               fontWeight: FontWeight.w300,
