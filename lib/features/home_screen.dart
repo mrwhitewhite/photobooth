@@ -95,12 +95,12 @@ class _Header extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Column(
+          const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'SELECT YOUR FORMAT',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'CHAOS16',
                   fontSize: 10,
                   letterSpacing: 5,
@@ -108,10 +108,10 @@ class _Header extends StatelessWidget {
                   fontWeight: FontWeight.w400,
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               Text(
                 'Choose a Layout',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'CHAOS16',
                   fontSize: 48,
                   fontWeight: FontWeight.w300,
@@ -227,7 +227,7 @@ class _BottomBar extends StatelessWidget {
     final canGoRight = currentIndex < total - 1;
 
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         border: Border(top: BorderSide(color: _C.border, width: 1)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
@@ -369,12 +369,12 @@ class _ChooseButtonState extends State<_ChooseButton>
                   : [],
             ),
             alignment: Alignment.center,
-            child: Row(
+            child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   'CHOOSE THIS LAYOUT',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'CHAOS16',
                     fontSize: 13,
                     letterSpacing: 4,
