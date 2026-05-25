@@ -7,7 +7,6 @@ import 'package:provider/provider.dart';
 import 'package:web/web.dart' as web;
 import '../services/photobooth_provider.dart';
 
-// Screensaver video assets (convert .mov → .webm for best cross-browser support)
 const _kVideos = [
   'assets/screen_saver/screen_saver_1.mov',
   'assets/screen_saver/screen_saver_2.mov',
@@ -38,7 +37,6 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
     _pulseAnim = Tween<double>(begin: 0.6, end: 1.0)
         .animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
 
-    // Pick a random video
     final path = _kVideos[Random().nextInt(_kVideos.length)];
     _viewId = 'screensaver-video-${DateTime.now().millisecondsSinceEpoch}';
 
@@ -57,11 +55,9 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
       (int _) => _video,
     );
 
-    // Try to play immediately (works in standalone PWA mode)
     _video.play().toDart.then((_) {
       if (mounted) setState(() => _videoPlaying = true);
     }).catchError((_) {
-      // Autoplay blocked — show static overlay; video plays on first tap
       if (mounted) setState(() => _videoPlaying = false);
     });
   }
@@ -81,7 +77,7 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
         if (mounted) setState(() => _videoPlaying = true);
       }).catchError((_) {});
     }
-    // Navigate after a brief moment so the tap feels snappy
+
     Future.delayed(const Duration(milliseconds: 120), () {
       if (mounted) provider.goToHomepage();
     });
@@ -95,10 +91,7 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // ── Video background ─────────────────────────────────────────────
           HtmlElementView(key: ValueKey(_viewId), viewType: _viewId),
-
-          // ── Dark vignette ─────────────────────────────────────────────────
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: RadialGradient(
@@ -111,13 +104,10 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
               ),
             ),
           ),
-
-          // ── "Tap to Start" overlay ────────────────────────────────────────
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Pulse ring
                 FadeTransition(
                   opacity: _pulseAnim,
                   child: Container(

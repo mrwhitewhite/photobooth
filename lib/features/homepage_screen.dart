@@ -38,15 +38,12 @@ class _HomepageScreenState extends State<HomepageScreen>
     return Stack(
       fit: StackFit.expand,
       children: [
-        // ── Full-bleed background ────────────────────────────────────────────
         Positioned.fill(
           child: Image.asset(
             'assets/homepage.png',
             fit: BoxFit.cover,
           ),
         ),
-
-        // ── Subtle dark gradient at bottom for button legibility ──────────────
         Positioned(
           bottom: 0,
           left: 0,
@@ -65,8 +62,6 @@ class _HomepageScreenState extends State<HomepageScreen>
             ),
           ),
         ),
-
-        // ── Content ──────────────────────────────────────────────────────────
         Positioned(
           bottom: 60,
           left: 0,
@@ -89,16 +84,6 @@ class _HomepageScreenState extends State<HomepageScreen>
                   fit: BoxFit.contain,
                 ),
                 const SizedBox(height: 8),
-                // Text(
-                //   'YOUR PERFECT MOMENT AWAITS',
-                //   style: TextStyle(
-                //     fontFamily: 'CHAOS16',
-                //     fontSize: 11,
-                //     letterSpacing: 5,
-                //     color: Colors.white.withValues(alpha: 0.75),
-                //     fontWeight: FontWeight.w300,
-                //   ),
-                // ),
                 const SizedBox(height: 40),
                 _StartButton(
                   onTap: () =>
@@ -113,7 +98,6 @@ class _HomepageScreenState extends State<HomepageScreen>
   }
 }
 
-// ── Animated START button ─────────────────────────────────────────────────────
 class _StartButton extends StatefulWidget {
   final VoidCallback onTap;
   const _StartButton({required this.onTap});
