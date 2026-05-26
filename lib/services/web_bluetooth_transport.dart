@@ -3,14 +3,15 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'printer_debug.dart';
 
 class WebBluetoothTransport {
   final int chunkSize;
   final int interChunkDelayMs;
 
   WebBluetoothTransport({
-    this.chunkSize = 200,
-    this.interChunkDelayMs = 30,
+    this.chunkSize = 512,
+    this.interChunkDelayMs = 0,
   });
 
   BluetoothDevice? _device;
@@ -22,58 +23,109 @@ class WebBluetoothTransport {
     required String serviceUuid,
     required String characteristicUuid,
   }) async {
-    if (_cachedCharacteristic != null) return;
+    // --- Stale-connection guard ---
+    // If we have a cached characteristic but the device is no longer
+    // connected, clear state and fall through to reconnect.
+    if (_device != null && _cachedCharacteristic != null) {
+      final state = await _device!.connectionState.first;
+      if (state == BluetoothConnectionState.connected) {
+        printerLog('Already connected — reusing existing connection.');
+        return;
+      }
+      printerLog('Stale connection detected — reconnecting.');
+      _cachedCharacteristic = null;
+      _device = null;
+    }
 
     final serviceGuid = Guid(serviceUuid);
     final characteristicGuid = Guid(characteristicUuid);
 
     try {
+      printerLog('Starting BLE scan (no service filter)...');
+
+      // Scan WITHOUT a service UUID filter because the XP-N160II (and many
+      // other Xprinter models) do not always advertise their service UUID
+      // in the scan packet — it only becomes visible after GATT discovery.
       await FlutterBluePlus.startScan(
-        withServices: [serviceGuid],
         timeout: const Duration(seconds: 10),
       );
 
-      final scanResults = await FlutterBluePlus.scanResults
-          .timeout(const Duration(seconds: 12))
-          .firstWhere((results) => results.isNotEmpty);
+      // Wait for the first result that looks like an Xprinter.
+      // We match on the device name so we don't accidentally connect to
+      // an unrelated BLE peripheral.
+      ScanResult target;
+      try {
+        final results = await FlutterBluePlus.scanResults
+            .timeout(const Duration(seconds: 12))
+            .firstWhere(
+              (results) => results.any(_isXprinter),
+            );
+        target = results.firstWhere(_isXprinter);
+      } on TimeoutException {
+        throw const PrinterTransportException(
+          'No Xprinter found within scan timeout. '
+          'Make sure the printer is on and in range.',
+        );
+      }
+
+      printerLog(
+        'Found device: "${target.device.platformName}" '
+        '(${target.device.remoteId}), RSSI=${target.rssi}',
+      );
 
       await FlutterBluePlus.stopScan();
 
-      final device = scanResults.first.device;
-      _device = device;
+      _device = target.device;
 
-      await device.connect(
+      await _device!.connect(
         timeout: const Duration(seconds: 10),
         autoConnect: false,
       );
+      printerLog('GATT connected.');
 
-      final services = await device.discoverServices();
+      final services = await _device!.discoverServices();
+
+      // --- Log all discovered services/characteristics when debug is on ---
+      if (kPrinterDebug) {
+        printerLog('--- Discovered GATT services ---');
+        for (final s in services) {
+          printerLog('  Service: ${s.uuid}');
+          for (final c in s.characteristics) {
+            printerLog(
+              '    Char: ${c.uuid} '
+              '| write=${c.properties.write} '
+              '| writeNoResp=${c.properties.writeWithoutResponse} '
+              '| notify=${c.properties.notify}',
+            );
+          }
+        }
+        printerLog('--------------------------------');
+      }
+
       final service = services.firstWhere(
         (s) => s.uuid == serviceGuid,
-        orElse: () {
-          throw const PrinterTransportException(
-            'Bluetooth service not found on device.',
-          );
-        },
+        orElse: () => throw PrinterTransportException(
+          'Service $serviceUuid not found on printer. '
+          'Check UUID or enable kPrinterDebug to see available services.',
+        ),
       );
 
       final characteristic = service.characteristics.firstWhere(
         (c) => c.uuid == characteristicGuid,
-        orElse: () {
-          throw const PrinterTransportException(
-            'Bluetooth characteristic not found on device.',
-          );
-        },
+        orElse: () => throw PrinterTransportException(
+          'Characteristic $characteristicUuid not found. '
+          'Check UUID or enable kPrinterDebug to see available characteristics.',
+        ),
       );
 
       _cachedCharacteristic = characteristic;
+      printerLog('Characteristic locked. Ready to print.');
     } catch (e) {
       _cachedCharacteristic = null;
       await _device?.disconnect();
       _device = null;
-      throw PrinterTransportException(
-        'Bluetooth connection failed: $e',
-      );
+      if (e is PrinterTransportException) rethrow;
+      throw PrinterTransportException('Bluetooth connection failed: $e');
     } finally {
       await FlutterBluePlus.stopScan();
     }
@@ -87,6 +139,15 @@ class WebBluetoothTransport {
       );
     }
 
+    // Honour write-without-response if the characteristic requires it.
+    final useWithoutResponse = !characteristic.properties.write &&
+        characteristic.properties.writeWithoutResponse;
+
+    printerLog(
+      'Sending ${data.length} bytes '
+      '(chunkSize=$chunkSize, withoutResponse=$useWithoutResponse)...',
+    );
+
     int offset = 0;
     while (offset < data.length) {
       final end = math.min(offset + chunkSize, data.length);
@@ -95,7 +156,7 @@ class WebBluetoothTransport {
       try {
         await characteristic.write(
           chunk,
-          withoutResponse: false,
+          withoutResponse: useWithoutResponse,
         );
       } catch (e) {
         throw PrinterTransportException(
@@ -105,18 +166,32 @@ class WebBluetoothTransport {
 
       offset = end;
 
-      if (offset < data.length) {
+      if (offset < data.length && interChunkDelayMs > 0) {
         await Future<void>.delayed(
           Duration(milliseconds: interChunkDelayMs),
         );
       }
     }
+
+    printerLog('Send complete.');
   }
 
   void disconnect() {
+    printerLog('Disconnecting.');
     _cachedCharacteristic = null;
     _device?.disconnect();
     _device = null;
+  }
+
+  /// Returns true if a scan result looks like an Xprinter device.
+  static bool _isXprinter(ScanResult r) {
+    final name = r.device.platformName.toLowerCase();
+    // Xprinter models typically advertise as "xprinter", "xp-…", or
+    // plain "printer" variants. Adjust if your unit uses a custom name.
+    return name.contains('xprinter') ||
+        name.contains('xp-') ||
+        name.startsWith('xp') ||
+        name.contains('printer');
   }
 }
 
