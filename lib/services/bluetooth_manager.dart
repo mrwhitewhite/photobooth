@@ -59,6 +59,7 @@ class _BluetoothPickerDialog extends StatefulWidget {
 
 class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
   final Map<String, BluetoothDeviceInfo> _found = {};
+  final Set<String> _bondedIds = {};
   StreamSubscription<List<ScanResult>>? _sub;
   bool _scanning = false;
   String? _error;
@@ -84,6 +85,22 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
     });
 
     try {
+      final bonded = await FlutterBluePlus.bondedDevices;
+      if (mounted) {
+        setState(() {
+          for (final d in bonded) {
+            final name =
+                d.platformName.isNotEmpty ? d.platformName : d.remoteId.str;
+            _bondedIds.add(d.remoteId.str);
+            _found[d.remoteId.str] = BluetoothDeviceInfo(
+              id: d.remoteId.str,
+              name: name,
+              rssi: -60,
+            );
+          }
+        });
+      }
+
       _sub = FlutterBluePlus.scanResults.listen((results) {
         if (!mounted) return;
         setState(() {
@@ -102,7 +119,11 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
         });
       });
 
-      await FlutterBluePlus.startScan(timeout: const Duration(seconds: 12));
+      await FlutterBluePlus.startScan(
+        timeout: const Duration(seconds: 12),
+        continuousUpdates: true,
+        removeIfGone: null,
+      );
     } catch (e) {
       if (mounted) {
         setState(() => _error = e.toString());
@@ -159,7 +180,9 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
             ),
             const SizedBox(height: 6),
             Text(
-              _scanning ? 'Scanning for nearby devices…' : 'Scan complete',
+              _scanning
+                  ? 'Scanning… paired Classic BT printers shown immediately'
+                  : 'Scan complete — paired Classic BT printers listed above',
               style: const TextStyle(color: Color(0xFF888888), fontSize: 12),
             ),
             const SizedBox(height: 14),
@@ -193,7 +216,12 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
                       itemBuilder: (_, i) {
                         final d = devices[i];
                         final isXprinter =
-                            d.name.toLowerCase().contains('xprinter');
+                            d.name.toLowerCase().contains('xprinter') ||
+                                d.name.toLowerCase().contains('xp-n') ||
+                                d.name.toLowerCase().contains('btp') ||
+                                d.name.toLowerCase().contains('pos') ||
+                                d.name.toLowerCase().contains('printer');
+                        final isBonded = _bondedIds.contains(d.id);
                         return ListTile(
                           dense: true,
                           contentPadding:
@@ -218,7 +246,9 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
                             ),
                           ),
                           subtitle: Text(
-                            '${d.id}  •  ${d.rssi} dBm',
+                            isBonded
+                                ? '${d.id}  •  Paired (Classic BT)'
+                                : '${d.id}  •  ${d.rssi} dBm',
                             style: const TextStyle(
                                 color: Color(0xFF888888), fontSize: 11),
                           ),
@@ -226,7 +256,10 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
                               ? const Text('Recommended',
                                   style: TextStyle(
                                       color: Color(0xFFE8C8A0), fontSize: 10))
-                              : null,
+                              : isBonded
+                                  ? const Icon(Icons.bluetooth,
+                                      color: Color(0xFF5599FF), size: 14)
+                                  : null,
                           onTap: () => _select(d),
                         );
                       },
