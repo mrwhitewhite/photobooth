@@ -37,6 +37,8 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    // Add native library dependencies here
 }
 
 flutter {

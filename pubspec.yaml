@@ -19,7 +19,7 @@ dependencies:
   flutter_animate: ^4.5.0
 
   # Printing
-  x_printer: ^0.0.7
+  blue_thermal_printer: ^1.2.3
 
   # Camera
   camera: ^0.11.0+2

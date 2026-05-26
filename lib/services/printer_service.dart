@@ -1,21 +1,46 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 
-import 'package:x_printer/x_printer.dart';
+import 'package:blue_thermal_printer/blue_thermal_printer.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 /// Service for printing images over Bluetooth using a thermal printer.
 ///
-/// Uses the [XPrinter] package to scan, connect, and print base64-encoded
-/// images. All methods are static for convenient access throughout the app.
+/// Uses the [BlueThermalPrinter] package to scan, connect, and print image bytes.
+/// All methods are static for convenient access throughout the app.
 class PrinterService {
-  static final XPrinter _printer = XPrinter();
+  static final BlueThermalPrinter _printer = BlueThermalPrinter.instance;
 
-  /// The duration to wait for a Bluetooth device to appear during scanning.
-  static const Duration _scanTimeout = Duration(seconds: 10);
+  /// Ensure required Bluetooth permissions are granted on Android.
+  /// Throws [PrinterException] if permissions are denied.
+  static Future<void> _ensureBluetoothPermissions() async {
+    if (!Platform.isAndroid) return;
+
+    final permissions = <Permission>[
+      Permission.bluetooth,
+      Permission.bluetoothScan,
+      Permission.bluetoothConnect,
+      Permission.locationWhenInUse,
+      Permission.location,
+    ];
+
+    final statuses = await permissions.request();
+
+    final grantedConnect =
+        statuses[Permission.bluetoothConnect]?.isGranted == true ||
+            statuses[Permission.bluetooth]?.isGranted == true;
+    final grantedScan = statuses[Permission.bluetoothScan]?.isGranted == true ||
+        statuses[Permission.location]?.isGranted == true ||
+        statuses[Permission.locationWhenInUse]?.isGranted == true;
+
+    if (!grantedConnect || !grantedScan) {
+      throw const PrinterException('Bluetooth permissions not granted');
+    }
+  }
 
   /// Whether the printer is currently connected.
-  static Future<bool> get isConnected => _printer.isConnected;
+  static Future<bool?> get isConnected => _printer.isConnected;
 
   /// Scans for nearby Bluetooth printers and connects to the first one found.
   ///
@@ -26,46 +51,25 @@ class PrinterService {
   /// timeout period or if the connection attempt fails.
   static Future<void> scanAndConnect() async {
     try {
-      final completer = Completer<String>();
+      await _ensureBluetoothPermissions();
+      final devices = await _printer.getBondedDevices();
+      if (devices.isEmpty) {
+        throw const PrinterException('No bonded Bluetooth printers found');
+      }
 
-      late final StreamSubscription<List<Peripheral>> subscription;
-      subscription = _printer.peripheralsStream.listen(
-        (peripherals) {
-          if (completer.isCompleted) return;
-          for (final device in peripherals) {
-            if (device.uuid != null && device.uuid!.isNotEmpty) {
-              completer.complete(device.uuid!);
-              subscription.cancel();
-              return;
-            }
-          }
-        },
-        onError: (Object error) {
-          if (!completer.isCompleted) {
-            completer.completeError(
-              PrinterException('Scan failed: $error'),
-            );
-          }
-          subscription.cancel();
-        },
-      );
+      // Prefer the first bonded printer, but log available bonded devices.
+      for (final device in devices) {
+        debugPrint(
+            'blue_thermal_printer: bonded device name=${device.name ?? "<no-name>"} address=${device.address ?? "<no-address>"}');
+      }
 
-      // Start scanning — devices will arrive via peripheralsStream.
-      await _printer.startScan();
-
-      final uuid = await completer.future.timeout(
-        _scanTimeout,
-        onTimeout: () {
-          subscription.cancel();
-          _printer.stopScan();
-          throw PrinterException(
-            'No printer found within ${_scanTimeout.inSeconds} seconds',
-          );
-        },
-      );
-
-      await _printer.stopScan();
-      await _printer.connect(uuid);
+      final device = devices.first;
+      try {
+        await _printer.connect(device);
+      } catch (e) {
+        throw PrinterException(
+            'Failed to connect to printer (address=${device.address}): $e');
+      }
     } on PrinterException {
       rethrow;
     } catch (e) {
@@ -83,13 +87,17 @@ class PrinterService {
   /// Throws a [PrinterException] if connection or printing fails.
   static Future<void> printReceipt(Uint8List imageBytes) async {
     try {
+      await _ensureBluetoothPermissions();
       final connected = await isConnected;
-      if (!connected) {
+      if (connected != true) {
         await scanAndConnect();
       }
 
-      final base64String = base64Encode(imageBytes);
-      await _printer.printImage(base64String);
+      try {
+        await _printer.printImageBytes(imageBytes);
+      } catch (e) {
+        throw PrinterException('Print failed: $e');
+      }
     } on PrinterException {
       rethrow;
     } catch (e) {
