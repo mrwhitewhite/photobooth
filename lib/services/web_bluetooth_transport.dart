@@ -33,15 +33,8 @@ extension type BluetoothRemoteGATTCharacteristic._(JSObject _)
 }
 
 class WebBluetoothTransport {
-  // 512 bytes: safely below the BLE 512-byte ATT MTU limit while still being
-  // large enough to keep throughput high. The previous 504 was fine in size
-  // but the mixed write-mode fallback (see sendData) caused the printer to
-  // lose track of which bytes it had ACK'd.
   final int chunkSize;
 
-  // 30 ms gives the XP-N160II's BLE stack time to flush the write buffer
-  // before the next chunk arrives. Lower values (< 20 ms) can cause the
-  // printer to silently drop chunks, producing truncated or banded output.
   final int interChunkDelayMs;
 
   WebBluetoothTransport({
@@ -50,8 +43,7 @@ class WebBluetoothTransport {
   });
 
   BluetoothRemoteGATTCharacteristic? _cachedCharacteristic;
-  // Track which write mode the characteristic actually supports so we never
-  // mix modes mid-transfer (mixing caused sync loss and banding in the old code).
+
   _WriteMode? _writeMode;
 
   bool get isConnected => _cachedCharacteristic != null;
@@ -79,9 +71,7 @@ class WebBluetoothTransport {
           await service.getCharacteristic(characteristicUuid.toJS).toDart;
 
       _cachedCharacteristic = characteristic;
-      // Probe which write mode works by sending an empty buffer.
-      // We do this once at connect time so every subsequent chunk uses
-      // the same mode — no mid-transfer switching.
+
       _writeMode = await _probeWriteMode(characteristic);
     } catch (e) {
       _cachedCharacteristic = null;
@@ -90,7 +80,6 @@ class WebBluetoothTransport {
     }
   }
 
-  // Sends [data] in fixed-size chunks, always using the same write mode.
   Future<void> sendData(Uint8List data) async {
     final characteristic = _cachedCharacteristic;
     final mode = _writeMode;
@@ -102,8 +91,7 @@ class WebBluetoothTransport {
     int offset = 0;
     while (offset < data.length) {
       final end = math.min(offset + chunkSize, data.length);
-      // sublist gives a view-backed copy — we need an isolated buffer so the
-      // JS ArrayBuffer is not shared with the next iteration.
+
       final chunk = Uint8List.fromList(data.sublist(offset, end));
       final jsBuffer = chunk.buffer.toJS;
 
@@ -131,14 +119,10 @@ class WebBluetoothTransport {
     _writeMode = null;
   }
 
-  // Probe once with a 1-byte payload to learn which write mode the
-  // characteristic supports. Prefers writeValueWithResponse (reliable,
-  // flow-controlled); falls back to writeValueWithoutResponse only if the
-  // GATT properties don't include WRITE (e.g. WRITE_WITHOUT_RESPONSE only).
   static Future<_WriteMode> _probeWriteMode(
     BluetoothRemoteGATTCharacteristic characteristic,
   ) async {
-    final probe = Uint8List(1); // single zero byte — harmless to the printer
+    final probe = Uint8List(1);
     try {
       await characteristic.writeValueWithResponse(probe.buffer.toJS).toDart;
       return _WriteMode.withResponse;
