@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:flutter_xprinter_sdk/flutter_xprinter_sdk.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BluetoothDeviceInfo {
@@ -60,7 +60,7 @@ class _BluetoothPickerDialog extends StatefulWidget {
 class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
   final Map<String, BluetoothDeviceInfo> _found = {};
   final Set<String> _bondedIds = {};
-  StreamSubscription<List<ScanResult>>? _sub;
+  StreamSubscription<XprinterBluetoothDevice>? _discoverySub;
   bool _scanning = false;
   String? _error;
 
@@ -72,8 +72,7 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
 
   @override
   void dispose() {
-    _sub?.cancel();
-    FlutterBluePlus.stopScan();
+    _discoverySub?.cancel();
     super.dispose();
   }
 
@@ -82,18 +81,19 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
       _scanning = true;
       _error = null;
       _found.clear();
+      _bondedIds.clear();
     });
 
     try {
-      final bonded = await FlutterBluePlus.bondedDevices;
+      // Load already-paired (bonded) Classic BT devices first.
+      final bonded = await XprinterBluetooth.getBondedDevices();
       if (mounted) {
         setState(() {
           for (final d in bonded) {
-            final name =
-                d.platformName.isNotEmpty ? d.platformName : d.remoteId.str;
-            _bondedIds.add(d.remoteId.str);
-            _found[d.remoteId.str] = BluetoothDeviceInfo(
-              id: d.remoteId.str,
+            final name = d.name.isNotEmpty ? d.name : d.address;
+            _bondedIds.add(d.address);
+            _found[d.address] = BluetoothDeviceInfo(
+              id: d.address,
               name: name,
               rssi: -60,
             );
@@ -101,40 +101,41 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
         });
       }
 
-      _sub = FlutterBluePlus.scanResults.listen((results) {
-        if (!mounted) return;
-        setState(() {
-          for (final r in results) {
-            final name = r.device.platformName.isNotEmpty
-                ? r.device.platformName
-                : r.advertisementData.advName.isNotEmpty
-                    ? r.advertisementData.advName
-                    : r.device.remoteId.str;
-            _found[r.device.remoteId.str] = BluetoothDeviceInfo(
-              id: r.device.remoteId.str,
-              name: name,
-              rssi: r.rssi,
-            );
-          }
-        });
-      });
-
-      await FlutterBluePlus.startScan(
+      // Live discovery stream for advertising devices.
+      _discoverySub?.cancel();
+      _discoverySub = XprinterBluetooth.startDiscovery(
         timeout: const Duration(seconds: 12),
-        continuousUpdates: true,
-        removeIfGone: null,
+      ).listen(
+        (device) {
+          if (!mounted) return;
+          setState(() {
+            final name = device.name.isNotEmpty ? device.name : device.address;
+            _found[device.address] = BluetoothDeviceInfo(
+              id: device.address,
+              name: name,
+              rssi: -90,
+            );
+          });
+        },
+        onError: (Object e) {
+          if (mounted) setState(() => _error = e.toString());
+        },
+        onDone: () {
+          if (mounted) setState(() => _scanning = false);
+        },
       );
     } catch (e) {
       if (mounted) {
-        setState(() => _error = e.toString());
+        setState(() {
+          _error = e.toString();
+          _scanning = false;
+        });
       }
-    } finally {
-      if (mounted) setState(() => _scanning = false);
     }
   }
 
   void _select(BluetoothDeviceInfo info) {
-    FlutterBluePlus.stopScan();
+    _discoverySub?.cancel();
     Navigator.of(context).pop(info);
   }
 
