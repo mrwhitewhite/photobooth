@@ -6,7 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'bluetooth_manager.dart';
 
 class PrinterService {
-  static const int _paperWidthDots = 576; // 80 mm paper
+  static const int _paperWidthDots = 576;
 
   static Future<void> printReceipt(Uint8List imageBytes) async {
     try {
@@ -19,7 +19,6 @@ class PrinterService {
         );
       }
 
-      // Reconnect if not already connected.
       if (!await XprinterConnection.isConnected()) {
         await XprinterConnection.connect(
           type: XprinterConnectionType.bluetooth,
@@ -27,15 +26,12 @@ class PrinterService {
         );
       }
 
-      // Initialise printer.
       await PosPrinter.initialize();
 
-      // Prepare and print the bitmap using the SDK's built-in pipeline.
-      // XprinterImageLoader handles: alpha flatten → resize → dither.
       final bitmapBytes = XprinterImageLoader.fromBytes(
         bytes: imageBytes,
         targetWidthDots: _paperWidthDots,
-        mode: XprinterImageMode.dither, // Floyd-Steinberg for photos
+        mode: XprinterImageMode.dither,
       );
 
       if (bitmapBytes == null) {
@@ -44,11 +40,10 @@ class PrinterService {
 
       await PosPrinter.printBitmap(
         bitmapBytes,
-        alignment: XprinterAlignment.center, // Added 'alignment:'
+        alignment: XprinterAlignment.center,
         widthDots: _paperWidthDots,
       );
 
-      // Feed and cut.
       await PosPrinter.feedLine(5);
       await PosPrinter.cutPaper();
     } on PrinterTransportException catch (e) {

@@ -85,7 +85,6 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
     });
 
     try {
-      // Load already-paired (bonded) Classic BT devices first.
       final bonded = await XprinterBluetooth.getBondedDevices();
       if (mounted) {
         setState(() {
@@ -101,7 +100,6 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
         });
       }
 
-      // Live discovery stream for advertising devices.
       _discoverySub?.cancel();
       _discoverySub = XprinterBluetooth.startDiscovery(
         timeout: const Duration(seconds: 12),
