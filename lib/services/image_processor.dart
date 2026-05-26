@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -18,12 +19,14 @@ class ImageProcessor {
     required PhotoLayout layout,
   }) async {
     final templateData = await rootBundle.load(layout.templateAsset);
-    final templateBytes = templateData.buffer.asUint8List();
-
     return compute(_compositeInIsolate, {
-      'photos': photos,
+      'photos': photos
+          .map((bytes) => TransferableTypedData.fromList([bytes]))
+          .toList(),
       'layoutIndex': layout.index,
-      'templateBytes': templateBytes,
+      'templateBytes': TransferableTypedData.fromList(
+        [templateData.buffer.asUint8List()],
+      ),
     });
   }
 
@@ -36,8 +39,13 @@ class ImageProcessor {
     final double templateW = templateImg.width.toDouble();
     final double templateH = templateImg.height.toDouble();
 
-    final double canvasW = templateW > 0 ? templateW : _outputW;
-    final double canvasH = templateH > 0 ? templateH : _outputH;
+    double canvasW = _outputW;
+    double canvasH = _outputH;
+    if (templateW > 0 && templateH > 0) {
+      final scale = min(1.0, min(_outputW / templateW, _outputH / templateH));
+      canvasW = templateW * scale;
+      canvasH = templateH * scale;
+    }
 
     final canvas = img.Image(
       width: canvasW.toInt(),
@@ -50,15 +58,9 @@ class ImageProcessor {
       templateImg,
       width: canvas.width,
       height: canvas.height,
-      interpolation: img.Interpolation.cubic,
+      interpolation: img.Interpolation.linear,
     );
-    final detectedSlots = _detectTemplateSlots(
-      templateCanvas,
-      canvas.width,
-      canvas.height,
-      layout.photoCount,
-    );
-    final slots = detectedSlots.isNotEmpty ? detectedSlots : layout.slots;
+    final slots = layout.slots;
 
     for (int i = 0; i < photos.length && i < slots.length; i++) {
       final slot = slots[i];
@@ -87,7 +89,7 @@ class ImageProcessor {
         photoImg,
         width: fit.width.round(),
         height: fit.height.round(),
-        interpolation: img.Interpolation.cubic,
+        interpolation: img.Interpolation.linear,
       );
 
       final slotCanvas = img.Image(
@@ -330,9 +332,14 @@ class _TransparentBox {
 }
 
 Future<Uint8List> _compositeInIsolate(Map<String, dynamic> args) async {
-  final photos = (args['photos'] as List).cast<Uint8List>();
+  final photos = (args['photos'] as List)
+      .cast<TransferableTypedData>()
+      .map((data) => data.materialize().asUint8List())
+      .toList();
   final layoutIndex = args['layoutIndex'] as int;
-  final templateBytes = args['templateBytes'] as Uint8List;
+  final templateBytes = (args['templateBytes'] as TransferableTypedData)
+      .materialize()
+      .asUint8List();
 
   final layout = PhotoLayout.values[layoutIndex];
   return ImageProcessor._compositeWithTemplate(

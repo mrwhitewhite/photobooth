@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
@@ -103,7 +104,7 @@ class CameraViewState extends State<CameraView>
 
       final controller = CameraController(
         selected,
-        ResolutionPreset.high,
+        ResolutionPreset.medium,
         enableAudio: false,
       );
       _controller = controller;
@@ -173,13 +174,27 @@ class CameraViewState extends State<CameraView>
       final decoded = img.decodeImage(bytes);
       if (decoded == null) return bytes;
 
-      final flipped = img.flipHorizontal(decoded);
+      final normalized = _downscaleImage(decoded);
+      final flipped = img.flipHorizontal(normalized);
       final encoded = img.encodeJpg(flipped, quality: 92);
       return Uint8List.fromList(encoded);
     } catch (e) {
       debugPrint('Capture error: $e');
     }
     return null;
+  }
+
+  img.Image _downscaleImage(img.Image source) {
+    const maxDimension = 2048;
+    final maxSide = math.max(source.width, source.height);
+    if (maxSide <= maxDimension) return source;
+    final scale = maxDimension / maxSide;
+    return img.copyResize(
+      source,
+      width: (source.width * scale).round(),
+      height: (source.height * scale).round(),
+      interpolation: img.Interpolation.cubic,
+    );
   }
 
   @override
