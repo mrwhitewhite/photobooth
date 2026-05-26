@@ -1,24 +1,14 @@
 import 'dart:typed_data';
 
+import 'package:flutter_xprinter_sdk/flutter_xprinter_sdk.dart';
 import 'package:permission_handler/permission_handler.dart';
+
 import 'bluetooth_manager.dart';
-import 'image_rasterizer.dart';
-import 'web_bluetooth_transport.dart';
 
 class PrinterService {
-  static String serviceUuid = '000018f0-0000-1000-8000-00805f9b34fb';
+  static const int _paperWidthDots = 576; // 80 mm paper
 
-  static String characteristicUuid = '00002af1-0000-1000-8000-00805f9b34fb';
-
-  static final WebBluetoothTransport _transport = WebBluetoothTransport(
-    chunkSize: 512,
-    interChunkDelayMs: 0,
-  );
-
-  static Future<void> printReceipt(
-    Uint8List imageBytes, {
-    int paperWidthPx = 576,
-  }) async {
+  static Future<void> printReceipt(Uint8List imageBytes) async {
     try {
       await ensureBluetoothPermissions();
 
@@ -29,34 +19,45 @@ class PrinterService {
         );
       }
 
-      await _transport.connectToDeviceId(
-        deviceId: saved.id,
-        serviceUuid: serviceUuid,
-        characteristicUuid: characteristicUuid,
+      // Reconnect if not already connected.
+      if (!await XprinterConnection.isConnected()) {
+        await XprinterConnection.connect(
+          type: XprinterConnectionType.bluetooth,
+          address: saved.id,
+        );
+      }
+
+      // Initialise printer.
+      await PosPrinter.initialize();
+
+      // Prepare and print the bitmap using the SDK's built-in pipeline.
+      // XprinterImageLoader handles: alpha flatten → resize → dither.
+      final bitmapBytes = XprinterImageLoader.fromBytes(
+        bytes: imageBytes,
+        targetWidthDots: _paperWidthDots,
+        mode: XprinterImageMode.dither, // Floyd-Steinberg for photos
       );
 
-      await _transport.sendData(ImageRasterizer.buildInitCommand());
+      if (bitmapBytes == null) {
+        throw const PrinterException('Image preparation failed.');
+      }
 
-      await Future<void>.delayed(const Duration(milliseconds: 100));
-
-      final rasterPayload = await ImageRasterizer.processAndBuildRaster(
-        imageBytes,
-        paperWidthPx: paperWidthPx,
+      await PosPrinter.printBitmap(
+        bitmapBytes,
+        alignment: XprinterAlignment.center, // Added 'alignment:'
+        widthDots: _paperWidthDots,
       );
 
-      await _transport.sendData(rasterPayload);
-
-      await Future<void>.delayed(const Duration(milliseconds: 500));
-      await _transport.sendData(ImageRasterizer.buildFeedCutCommand());
+      // Feed and cut.
+      await PosPrinter.feedLine(5);
+      await PosPrinter.cutPaper();
     } on PrinterTransportException catch (e) {
-      throw PrinterException(e.message);
-    } on ImageRasterizerException catch (e) {
       throw PrinterException(e.message);
     }
   }
 
   static void disconnect() {
-    _transport.disconnect();
+    XprinterConnection.disconnect();
   }
 
   static Future<void> ensureBluetoothPermissions() async {
@@ -81,4 +82,12 @@ class PrinterException implements Exception {
 
   @override
   String toString() => 'PrinterException: $message';
+}
+
+class PrinterTransportException implements Exception {
+  final String message;
+  const PrinterTransportException(this.message);
+
+  @override
+  String toString() => 'PrinterTransportException: $message';
 }
