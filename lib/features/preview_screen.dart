@@ -106,7 +106,7 @@ class _PreviewScreenState extends State<PreviewScreen>
       }
     } catch (e) {
       if (mounted) {
-        // Clear cached BLE device so next tap shows the picker again.
+        // Clear cached Bluetooth device so next tap shows the picker again.
         PrinterService.disconnect();
         _showPrintError(
           'Bluetooth error — tap PRINT again to reconnect.\n${e.toString()}',

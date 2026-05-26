@@ -68,10 +68,10 @@ extension type BluetoothRemoteGATTCharacteristic._(JSObject _)
 //  WebBluetoothTransport
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// A self-contained BLE transport layer that knows nothing about printing,
+/// A self-contained Bluetooth transport layer that knows nothing about printing,
 /// images, or ESC/POS.  It handles:
 ///
-///   1. Device discovery via the browser's BLE picker
+///   1. Device discovery via the browser's Bluetooth picker
 ///   2. GATT connection and characteristic caching
 ///   3. Chunked, flow-controlled data streaming
 ///
@@ -85,13 +85,13 @@ extension type BluetoothRemoteGATTCharacteristic._(JSObject _)
 class WebBluetoothTransport {
   // ── Tunables ─────────────────────────────────────────────────────────────
 
-  /// Maximum bytes per BLE write packet.  Kept conservative (200 bytes) to
-  /// avoid overflowing the printer's tiny BLE receive FIFO.  The BLE spec
+  /// Maximum bytes per Bluetooth write packet.  Kept conservative (200 bytes) to
+  /// avoid overflowing the printer's tiny Bluetooth receive FIFO.  The Bluetooth spec
   /// allows up to 512 bytes with negotiated MTU, but most thermal printer
   /// firmware handles 200 bytes reliably.
   final int chunkSize;
 
-  /// Milliseconds to pause between consecutive BLE write packets.  This
+  /// Milliseconds to pause between consecutive Bluetooth write packets.  This
   /// pacing delay lets the printer's internal buffer drain to the thermal
   /// head.  30 ms is a safe default for XPrinter models; increase to 50 ms
   /// if you observe dropped lines or garbled output.
@@ -106,19 +106,19 @@ class WebBluetoothTransport {
 
   BluetoothRemoteGATTCharacteristic? _cachedCharacteristic;
 
-  /// Whether a BLE characteristic is currently cached (i.e. connected).
+  /// Whether a Bluetooth characteristic is currently cached (i.e. connected).
   bool get isConnected => _cachedCharacteristic != null;
 
   // ── Public API ───────────────────────────────────────────────────────────
 
-  /// Opens the browser's BLE device picker, connects to the selected device's
+  /// Opens the browser's Bluetooth device picker, connects to the selected device's
   /// GATT server, discovers the specified service and characteristic, and
   /// caches the characteristic for subsequent [sendData] calls.
   ///
   /// If a characteristic is already cached, this is a no-op (returns the
   /// existing connection).  Call [disconnect] first to force a fresh picker.
   ///
-  /// Throws [PrinterTransportException] on any BLE failure.
+  /// Throws [PrinterTransportException] on any Bluetooth failure.
   Future<void> connect({
     required String serviceUuid,
     required String characteristicUuid,
@@ -142,7 +142,7 @@ class WebBluetoothTransport {
         'optionalServices': <String>[serviceUuid],
       }.jsify() as JSObject;
 
-      // Show the browser's native BLE device picker.  This MUST be triggered
+      // Show the browser's native Bluetooth device picker.  This MUST be triggered
       // by a user gesture or the browser will reject with SecurityError.
       final device =
           await _jsRequestDevice(options).toDart as BluetoothDevice;
@@ -162,12 +162,12 @@ class WebBluetoothTransport {
     } catch (e) {
       _cachedCharacteristic = null;
       throw PrinterTransportException(
-        'BLE connection failed: $e',
+        'Bluetooth connection failed: $e',
       );
     }
   }
 
-  /// Sends [data] over BLE in [chunkSize]-byte packets with flow-controlled
+  /// Sends [data] over Bluetooth in [chunkSize]-byte packets with flow-controlled
   /// pacing.
   ///
   /// Each packet is written using `writeValueWithResponse` which waits for
@@ -191,7 +191,7 @@ class WebBluetoothTransport {
       final end = math.min(offset + chunkSize, data.length);
       final chunk = data.sublist(offset, end);
 
-      // Convert the Dart Uint8List into a JS ArrayBuffer for the BLE API.
+      // Convert the Dart Uint8List into a JS ArrayBuffer for the Bluetooth API.
       final jsBuffer = chunk.buffer.toJS;
 
       try {
@@ -204,7 +204,7 @@ class WebBluetoothTransport {
           await characteristic.writeValueWithoutResponse(jsBuffer).toDart;
         } catch (e) {
           throw PrinterTransportException(
-            'BLE write failed at offset $offset: $e',
+            'Bluetooth write failed at offset $offset: $e',
           );
         }
       }
@@ -221,7 +221,7 @@ class WebBluetoothTransport {
     }
   }
 
-  /// Drops the cached BLE characteristic, effectively disconnecting.
+  /// Drops the cached Bluetooth characteristic, effectively disconnecting.
   ///
   /// The next call to [connect] will show the browser's device picker again.
   /// Note: this does not call `device.gatt.disconnect()` because the Web
@@ -237,7 +237,7 @@ class WebBluetoothTransport {
 //  Exception type
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Exception thrown by [WebBluetoothTransport] when a BLE operation fails.
+/// Exception thrown by [WebBluetoothTransport] when a Bluetooth operation fails.
 class PrinterTransportException implements Exception {
   final String message;
   const PrinterTransportException(this.message);
