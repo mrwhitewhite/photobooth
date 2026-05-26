@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
@@ -16,7 +17,22 @@ class ImageProcessor {
     required List<Uint8List> photos,
     required PhotoLayout layout,
   }) async {
-    final templateImg = await _loadAssetImage(layout.templateAsset);
+    final templateData = await rootBundle.load(layout.templateAsset);
+    final templateBytes = templateData.buffer.asUint8List();
+
+    return compute(_compositeInIsolate, {
+      'photos': photos,
+      'layoutIndex': layout.index,
+      'templateBytes': templateBytes,
+    });
+  }
+
+  static Future<Uint8List> _compositeWithTemplate({
+    required List<Uint8List> photos,
+    required PhotoLayout layout,
+    required Uint8List templateBytes,
+  }) async {
+    final templateImg = await _loadBytesImage(templateBytes);
     final double templateW = templateImg.width.toDouble();
     final double templateH = templateImg.height.toDouble();
 
@@ -106,12 +122,6 @@ class ImageProcessor {
     );
 
     return Uint8List.fromList(img.encodePng(canvas));
-  }
-
-  static Future<img.Image> _loadAssetImage(String assetPath) async {
-    final byteData = await rootBundle.load(assetPath);
-    final bytes = byteData.buffer.asUint8List();
-    return _loadBytesImage(bytes);
   }
 
   static Future<img.Image> _loadBytesImage(Uint8List bytes) async {
@@ -317,4 +327,17 @@ class _TransparentBox {
   _TransparentBox(this.xMin, this.xMax, this.yMin, this.yMax);
 
   int get area => (xMax - xMin + 1) * (yMax - yMin + 1);
+}
+
+Future<Uint8List> _compositeInIsolate(Map<String, dynamic> args) async {
+  final photos = (args['photos'] as List).cast<Uint8List>();
+  final layoutIndex = args['layoutIndex'] as int;
+  final templateBytes = args['templateBytes'] as Uint8List;
+
+  final layout = PhotoLayout.values[layoutIndex];
+  return ImageProcessor._compositeWithTemplate(
+    photos: photos,
+    layout: layout,
+    templateBytes: templateBytes,
+  );
 }

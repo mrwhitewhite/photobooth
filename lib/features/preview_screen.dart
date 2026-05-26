@@ -146,21 +146,48 @@ class _PreviewScreenState extends State<PreviewScreen>
 
     return Scaffold(
       backgroundColor: _C.bg,
-      body: Row(
-        children: [
-          Expanded(
-            flex: 6,
-            child: Container(
-              color: _C.surface,
-              child: _buildPreviewPanel(),
-            ),
-          ),
-          Container(width: 1, color: _C.border),
-          SizedBox(
-            width: 320,
-            child: _buildActionPanel(provider),
-          ),
-        ],
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isNarrow = constraints.maxWidth < 900 ||
+                constraints.maxWidth < constraints.maxHeight;
+            if (isNarrow) {
+              return Column(
+                children: [
+                  Expanded(
+                    flex: 7,
+                    child: Container(
+                      color: _C.surface,
+                      child: _buildPreviewPanel(),
+                    ),
+                  ),
+                  Container(height: 1, color: _C.border),
+                  Expanded(
+                    flex: 6,
+                    child: _buildActionPanel(provider, compact: true),
+                  ),
+                ],
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(
+                  flex: 6,
+                  child: Container(
+                    color: _C.surface,
+                    child: _buildPreviewPanel(),
+                  ),
+                ),
+                Container(width: 1, color: _C.border),
+                SizedBox(
+                  width: 320,
+                  child: _buildActionPanel(provider, compact: false),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -242,92 +269,100 @@ class _PreviewScreenState extends State<PreviewScreen>
     );
   }
 
-  Widget _buildActionPanel(PhotoboothProvider provider) {
+  Widget _buildActionPanel(
+    PhotoboothProvider provider, {
+    required bool compact,
+  }) {
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        Text(
+          'Preview',
+          style: TextStyle(
+            fontFamily: 'CHAOS16',
+            fontSize: compact ? 36 : 48,
+            fontWeight: FontWeight.w300,
+            fontStyle: FontStyle.italic,
+            color: _C.text,
+            height: 1.0,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          width: 40,
+          height: 1,
+          color: _C.accent.withValues(alpha: 0.5),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          provider.selectedLayout.label,
+          style: const TextStyle(
+            fontFamily: 'CHAOS16',
+            fontSize: 20,
+            color: _C.muted,
+          ),
+        ),
+        Text(
+          '${provider.capturedCount} photos captured',
+          style: const TextStyle(
+            fontFamily: 'CHAOS16',
+            fontSize: 20,
+            color: _C.muted,
+          ),
+        ),
+        if (provider.allPhotos.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          _PhotoStrip(photos: provider.allPhotos, layout: provider.selectedLayout),
+        ],
+        if (!compact) const Spacer(),
+        if (compact) const SizedBox(height: 24),
+        _ActionButton(
+          label: _isPrinting ? 'PRINTING…' : 'PRINT',
+          icon: _isPrinting ? Icons.hourglass_top_rounded : Icons.print_outlined,
+          filled: false,
+          enabled: _composite != null && !_isPrinting,
+          onTap: _print,
+        ),
+        const SizedBox(height: 12),
+        _ActionButton(
+          label: 'DOWNLOAD',
+          icon: Icons.download_rounded,
+          filled: true,
+          enabled: _composite != null,
+          onTap: _download,
+        ),
+        const SizedBox(height: 24),
+        Container(height: 1, color: _C.border),
+        const SizedBox(height: 24),
+        _ActionButton(
+          label: 'START OVER',
+          icon: Icons.refresh_rounded,
+          filled: false,
+          enabled: true,
+          danger: true,
+          onTap: () => provider.reset(),
+        ),
+        const SizedBox(height: 24),
+        Center(
+          child: Text(
+            'MyReceipt · ${DateTime.now().year}',
+            style: const TextStyle(
+              fontFamily: 'PoppinsMedium',
+              fontSize: 9,
+              letterSpacing: 3,
+              color: _C.border,
+            ),
+          ),
+        ),
+      ],
+    );
+
     return Container(
       color: _C.bg,
-      padding: const EdgeInsets.fromLTRB(32, 48, 32, 40),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 12),
-          const Text(
-            'Preview',
-            style: TextStyle(
-              fontFamily: 'CHAOS16',
-              fontSize: 48,
-              fontWeight: FontWeight.w300,
-              fontStyle: FontStyle.italic,
-              color: _C.text,
-              height: 1.0,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Container(
-              width: 40, height: 1, color: _C.accent.withValues(alpha: 0.5)),
-          const SizedBox(height: 20),
-          Text(
-            provider.selectedLayout.label,
-            style: const TextStyle(
-              fontFamily: 'CHAOS16',
-              fontSize: 20,
-              color: _C.muted,
-            ),
-          ),
-          Text(
-            '${provider.capturedCount} photos captured',
-            style: const TextStyle(
-              fontFamily: 'CHAOS16',
-              fontSize: 20,
-              color: _C.muted,
-            ),
-          ),
-          if (provider.allPhotos.isNotEmpty) ...[
-            const SizedBox(height: 24),
-            _PhotoStrip(
-                photos: provider.allPhotos, layout: provider.selectedLayout),
-          ],
-          const Spacer(),
-          _ActionButton(
-            label: _isPrinting ? 'PRINTING…' : 'PRINT',
-            icon: _isPrinting
-                ? Icons.hourglass_top_rounded
-                : Icons.print_outlined,
-            filled: false,
-            enabled: _composite != null && !_isPrinting,
-            onTap: _print,
-          ),
-          const SizedBox(height: 12),
-          _ActionButton(
-            label: 'DOWNLOAD',
-            icon: Icons.download_rounded,
-            filled: true,
-            enabled: _composite != null,
-            onTap: _download,
-          ),
-          const SizedBox(height: 24),
-          Container(height: 1, color: _C.border),
-          const SizedBox(height: 24),
-          _ActionButton(
-            label: 'START OVER',
-            icon: Icons.refresh_rounded,
-            filled: false,
-            enabled: true,
-            danger: true,
-            onTap: () => provider.reset(),
-          ),
-          const SizedBox(height: 32),
-          Center(
-            child: Text(
-              'MyReceipt · ${DateTime.now().year}',
-              style: const TextStyle(
-                  fontFamily: 'PoppinsMedium',
-                  fontSize: 9,
-                  letterSpacing: 3,
-                  color: _C.border),
-            ),
-          ),
-        ],
-      ),
+      padding:
+          compact ? const EdgeInsets.all(24) : const EdgeInsets.fromLTRB(32, 48, 32, 40),
+      child: compact ? SingleChildScrollView(child: content) : content,
     );
   }
 }
