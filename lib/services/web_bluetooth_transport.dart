@@ -23,9 +23,6 @@ class WebBluetoothTransport {
     required String serviceUuid,
     required String characteristicUuid,
   }) async {
-    // --- Stale-connection guard ---
-    // If we have a cached characteristic but the device is no longer
-    // connected, clear state and fall through to reconnect.
     if (_device != null && _cachedCharacteristic != null) {
       final state = await _device!.connectionState.first;
       if (state == BluetoothConnectionState.connected) {
@@ -43,16 +40,10 @@ class WebBluetoothTransport {
     try {
       printerLog('Starting BLE scan (no service filter)...');
 
-      // Scan WITHOUT a service UUID filter because the XP-N160II (and many
-      // other Xprinter models) do not always advertise their service UUID
-      // in the scan packet — it only becomes visible after GATT discovery.
       await FlutterBluePlus.startScan(
         timeout: const Duration(seconds: 10),
       );
 
-      // Wait for the first result that looks like an Xprinter.
-      // We match on the device name so we don't accidentally connect to
-      // an unrelated BLE peripheral.
       ScanResult target;
       try {
         final results = await FlutterBluePlus.scanResults
@@ -85,7 +76,6 @@ class WebBluetoothTransport {
 
       final services = await _device!.discoverServices();
 
-      // --- Log all discovered services/characteristics when debug is on ---
       if (kPrinterDebug) {
         printerLog('--- Discovered GATT services ---');
         for (final s in services) {
@@ -139,7 +129,6 @@ class WebBluetoothTransport {
       );
     }
 
-    // Honour write-without-response if the characteristic requires it.
     final useWithoutResponse = !characteristic.properties.write &&
         characteristic.properties.writeWithoutResponse;
 
@@ -183,11 +172,9 @@ class WebBluetoothTransport {
     _device = null;
   }
 
-  /// Returns true if a scan result looks like an Xprinter device.
   static bool _isXprinter(ScanResult r) {
     final name = r.device.platformName.toLowerCase();
-    // Xprinter models typically advertise as "xprinter", "xp-…", or
-    // plain "printer" variants. Adjust if your unit uses a custom name.
+
     return name.contains('xprinter') ||
         name.contains('xp-') ||
         name.startsWith('xp') ||

@@ -6,7 +6,6 @@ import 'printer_debug.dart';
 import 'web_bluetooth_transport.dart';
 
 class PrinterService {
-  // UUIDs confirmed for Xprinter XP-N160II (18F0 / 2AF1 pair).
   static const String serviceUuid = '000018f0-0000-1000-8000-00805f9b34fb';
   static const String characteristicUuid =
       '00002af1-0000-1000-8000-00805f9b34fb';
