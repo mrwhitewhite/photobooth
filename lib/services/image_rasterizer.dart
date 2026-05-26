@@ -88,10 +88,10 @@ class ImageRasterizer {
     for (int y = 0; y < targetH; y++) {
       for (int x = 0; x < targetW; x++) {
         final p = resized.getPixel(x, y);
-        rgbaBytes[offset++] = p.r;
-        rgbaBytes[offset++] = p.g;
-        rgbaBytes[offset++] = p.b;
-        rgbaBytes[offset++] = p.a;
+        rgbaBytes[offset++] = p.r.toInt();
+        rgbaBytes[offset++] = p.g.toInt();
+        rgbaBytes[offset++] = p.b.toInt();
+        rgbaBytes[offset++] = p.a.toInt();
       }
     }
     return _RgbaImage(
