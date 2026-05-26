@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-
 import 'package:provider/provider.dart';
+
+import '../services/bluetooth_manager.dart';
 import '../services/photobooth_provider.dart';
+import '../services/printer_service.dart';
 
 class HomepageScreen extends StatefulWidget {
   const HomepageScreen({super.key});
@@ -31,6 +33,47 @@ class _HomepageScreenState extends State<HomepageScreen>
   void dispose() {
     _ctrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleStart() async {
+    try {
+      await PrinterService.ensureBluetoothPermissions();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+      return;
+    }
+
+    final saved = await BluetoothManager.getSavedDevice();
+
+    if (saved != null) {
+      if (mounted) {
+        context.read<PhotoboothProvider>().goToLayoutSelect();
+      }
+      return;
+    }
+
+    if (!mounted) return;
+    final chosen = await BluetoothManager.showPickerDialog(context);
+
+    if (chosen == null) {
+      return;
+    }
+
+    await BluetoothManager.saveDevice(chosen.id, chosen.name);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Printer "${chosen.name}" saved.'),
+          backgroundColor: const Color(0xFF1A1A1A),
+        ),
+      );
+      context.read<PhotoboothProvider>().goToLayoutSelect();
+    }
   }
 
   @override
@@ -84,16 +127,95 @@ class _HomepageScreenState extends State<HomepageScreen>
                   fit: BoxFit.contain,
                 ),
                 const SizedBox(height: 8),
+                _SavedPrinterBadge(onChangePrinter: _showChangePrinterDialog),
                 const SizedBox(height: 40),
-                _StartButton(
-                  onTap: () =>
-                      context.read<PhotoboothProvider>().goToLayoutSelect(),
-                ),
+                _StartButton(onTap: _handleStart),
               ],
             ),
           ),
         ),
       ],
+    );
+  }
+
+  Future<void> _showChangePrinterDialog() async {
+    final chosen = await BluetoothManager.showPickerDialog(context);
+    if (chosen == null) return;
+    await BluetoothManager.saveDevice(chosen.id, chosen.name);
+    if (mounted) {
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Printer changed to "${chosen.name}".'),
+          backgroundColor: const Color(0xFF1A1A1A),
+        ),
+      );
+    }
+  }
+}
+
+class _SavedPrinterBadge extends StatefulWidget {
+  final VoidCallback onChangePrinter;
+  const _SavedPrinterBadge({required this.onChangePrinter});
+
+  @override
+  State<_SavedPrinterBadge> createState() => _SavedPrinterBadgeState();
+}
+
+class _SavedPrinterBadgeState extends State<_SavedPrinterBadge> {
+  String? _savedName;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final saved = await BluetoothManager.getSavedDevice();
+    if (mounted) setState(() => _savedName = saved?.name);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_savedName == null) return const SizedBox.shrink();
+
+    return GestureDetector(
+      onTap: widget.onChangePrinter,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.55),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFE8C8A0), width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.bluetooth_connected,
+                color: Color(0xFFE8C8A0), size: 14),
+            const SizedBox(width: 6),
+            Text(
+              _savedName!,
+              style: const TextStyle(
+                color: Color(0xFFE8C8A0),
+                fontSize: 12,
+                fontFamily: 'PoppinsMedium',
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'Change',
+              style: TextStyle(
+                color: Color(0xFF888888),
+                fontSize: 11,
+                decoration: TextDecoration.underline,
+                decorationColor: Color(0xFF888888),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
