@@ -184,19 +184,16 @@ class ImageProcessor {
     int height,
     int expectedCount,
   ) {
-    final normalized = img.Image.from(template, numChannels: 4);
-    final pixels = normalized.getBytes();
-
     final List<List<_Segment>> rowSegments = List.generate(height, (_) => []);
     for (var y = 0; y < height; y++) {
       var x = 0;
       while (x < width) {
-        final alpha = pixels[(y * width + x) * 4 + 3];
+        final alpha = template.getPixel(x, y).a;
         if (alpha == 0) {
           final start = x;
           do {
             x++;
-          } while (x < width && pixels[(y * width + x) * 4 + 3] == 0);
+          } while (x < width && template.getPixel(x, y).a == 0);
           rowSegments[y].add(_Segment(start, x - 1));
         } else {
           x++;

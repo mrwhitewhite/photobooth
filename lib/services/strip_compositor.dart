@@ -59,7 +59,16 @@ class StripCompositor {
         interpolation: img.Interpolation.cubic,
       );
 
-      final slotImage = img.Image.from(resized, numChannels: 4);
+      final slotImage = img.Image(
+        width: resized.width,
+        height: resized.height,
+        numChannels: 4,
+      );
+      img.compositeImage(
+        slotImage,
+        resized,
+        blend: img.BlendMode.alpha,
+      );
       _applyRoundedCorners(slotImage, _borderRadius.round());
 
       img.compositeImage(
@@ -96,9 +105,9 @@ class StripCompositor {
         image,
         x,
         y,
-        img.getRed(pixel),
-        img.getGreen(pixel),
-        img.getBlue(pixel),
+        pixel.r,
+        pixel.g,
+        pixel.b,
         0,
       );
     }
