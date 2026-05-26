@@ -26,8 +26,7 @@ dependencies:
   path_provider: ^2.1.0
   share_plus: ^9.0.0
   shared_preferences: ^2.5.5
-  flutter_bluetooth_serial: ^0.4.0
-
+  print_bluetooth_thermal: ^1.2.2
 dev_dependencies:
   flutter_test:
     sdk: flutter
