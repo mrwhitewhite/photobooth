@@ -19,7 +19,6 @@ class ScreensaverScreen extends StatefulWidget {
 class _ScreensaverScreenState extends State<ScreensaverScreen>
     with SingleTickerProviderStateMixin {
   VideoPlayerController? _controller;
-  bool _videoPlaying = false;
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseAnim;
 
@@ -40,9 +39,9 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
       ..initialize().then((_) {
         if (!mounted) return;
         _controller!.play();
-        setState(() => _videoPlaying = true);
+        setState(() {});
       }).catchError((_) {
-        if (mounted) setState(() => _videoPlaying = false);
+        if (mounted) setState(() {});
       });
   }
 
@@ -58,7 +57,7 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
     final controller = _controller;
     if (controller != null && !controller.value.isPlaying) {
       controller.play().then((_) {
-        if (mounted) setState(() => _videoPlaying = true);
+        if (mounted) setState(() {});
       }).catchError((_) {});
     }
 
@@ -72,20 +71,20 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: _onTap,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (_controller != null && _controller!.value.isInitialized)
-              FittedBox(
-                fit: BoxFit.cover,
-                child: SizedBox(
-                  width: _controller!.value.size.width,
-                  height: _controller!.value.size.height,
-                  child: VideoPlayer(_controller!),
-                ),
-              )
-            else
-              const ColoredBox(color: Colors.black),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (_controller != null && _controller!.value.isInitialized)
+            FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(
+                width: _controller!.value.size.width,
+                height: _controller!.value.size.height,
+                child: VideoPlayer(_controller!),
+              ),
+            )
+          else
+            const ColoredBox(color: Colors.black),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: RadialGradient(

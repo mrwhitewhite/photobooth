@@ -80,12 +80,13 @@ class StripCompositor {
       );
     }
 
+    final font = img.arial24;
     img.drawString(
       canvas,
-      img.arial_24,
-      (canvas.width / 2 - 90).round(),
-      canvas.height - 50,
       '✦ SnapBooth ✦',
+      font: font,
+      x: (canvas.width / 2 - 90).round(),
+      y: canvas.height - 50,
       color: img.ColorUint8.rgba(232, 196, 160, 180),
     );
 
@@ -101,15 +102,8 @@ class StripCompositor {
 
     void clearPixel(int x, int y) {
       final pixel = image.getPixel(x, y);
-      img.setPixelRgba(
-        image,
-        x,
-        y,
-        pixel.r,
-        pixel.g,
-        pixel.b,
-        0,
-      );
+      image.setPixelRgba(
+          x, y, pixel.r.toInt(), pixel.g.toInt(), pixel.b.toInt(), 0);
     }
 
     for (int y = 0; y < r; y++) {

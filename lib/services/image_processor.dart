@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -190,100 +189,6 @@ class ImageProcessor {
     return layout == PhotoLayout.layout2x2 || layout == PhotoLayout.layout3x1;
   }
 
-  static List<LayoutSlot> _detectTemplateSlots(
-    img.Image template,
-    int width,
-    int height,
-    int expectedCount,
-  ) {
-    final List<List<_Segment>> rowSegments = List.generate(height, (_) => []);
-    for (var y = 0; y < height; y++) {
-      var x = 0;
-      while (x < width) {
-        final alpha = template.getPixel(x, y).a;
-        if (alpha == 0) {
-          final start = x;
-          do {
-            x++;
-          } while (x < width && template.getPixel(x, y).a == 0);
-          rowSegments[y].add(_Segment(start, x - 1));
-        } else {
-          x++;
-        }
-      }
-    }
-
-    final List<_TransparentBox> active = [];
-    final List<_TransparentBox> boxes = [];
-
-    for (var y = 0; y < height; y++) {
-      final segments = rowSegments[y];
-      final matched = List<bool>.filled(active.length, false, growable: true);
-
-      for (final segment in segments) {
-        var matchedBox = false;
-        for (var i = 0; i < active.length; i++) {
-          final box = active[i];
-          if (segment.start <= box.xMax && segment.end >= box.xMin) {
-            box.xMin = min(box.xMin, segment.start);
-            box.xMax = max(box.xMax, segment.end);
-            box.yMax = y;
-            matched[i] = true;
-            matchedBox = true;
-            break;
-          }
-        }
-        if (!matchedBox) {
-          active.add(_TransparentBox(segment.start, segment.end, y, y));
-          matched.add(true);
-        }
-      }
-
-      for (var i = active.length - 1; i >= 0; i--) {
-        if (!matched[i]) {
-          boxes.add(active.removeAt(i));
-          matched.removeAt(i);
-        }
-      }
-    }
-
-    boxes.addAll(active);
-
-    final slotBoxes = boxes.where((box) {
-      final widthFrac = (box.xMax - box.xMin + 1) / width;
-      final heightFrac = (box.yMax - box.yMin + 1) / height;
-      return box.area > max(1000, width * height * 0.0001) &&
-          widthFrac > 0.02 &&
-          heightFrac > 0.02;
-    }).toList();
-
-    if (slotBoxes.length < expectedCount) {
-      return const [];
-    }
-
-    slotBoxes.sort((a, b) {
-      final sizeCompare = b.area.compareTo(a.area);
-      if (sizeCompare != 0) return sizeCompare;
-      final rowCompare = a.yMin.compareTo(b.yMin);
-      return rowCompare != 0 ? rowCompare : a.xMin.compareTo(b.xMin);
-    });
-
-    final selected = slotBoxes.take(expectedCount).toList();
-    selected.sort((a, b) {
-      final rowCompare = a.yMin.compareTo(b.yMin);
-      return rowCompare != 0 ? rowCompare : a.xMin.compareTo(b.xMin);
-    });
-
-    return selected.map((box) {
-      return LayoutSlot(
-        box.xMin / width,
-        box.yMin / height,
-        (box.xMax - box.xMin + 1) / width,
-        (box.yMax - box.yMin + 1) / height,
-      );
-    }).toList();
-  }
-
   static Future<void> downloadFile(Uint8List bytes, String filename) async {
     final dir = await getTemporaryDirectory();
     final file = File('${dir.path}/$filename');
@@ -312,23 +217,6 @@ class _FitResult {
     required this.width,
     required this.height,
   });
-}
-
-class _Segment {
-  int start;
-  int end;
-  _Segment(this.start, this.end);
-}
-
-class _TransparentBox {
-  int xMin;
-  int xMax;
-  int yMin;
-  int yMax;
-
-  _TransparentBox(this.xMin, this.xMax, this.yMin, this.yMax);
-
-  int get area => (xMax - xMin + 1) * (yMax - yMin + 1);
 }
 
 Future<Uint8List> _compositeInIsolate(Map<String, dynamic> args) async {

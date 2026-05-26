@@ -294,7 +294,7 @@ class CameraViewState extends State<CameraView>
           height: size.height,
           child: Transform(
             alignment: Alignment.center,
-            transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
+            transform: Matrix4.diagonal3Values(-1.0, 1.0, 1.0),
             child: CameraPreview(controller),
           ),
         ),
