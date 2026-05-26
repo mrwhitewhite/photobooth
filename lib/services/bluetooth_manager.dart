@@ -138,6 +138,42 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
     Navigator.of(context).pop(info);
   }
 
+  Future<void> _confirmRemove(BluetoothDeviceInfo d) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF242424),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text(
+          'Remove device?',
+          style: TextStyle(color: Color(0xFFF0EDE8), fontSize: 15),
+        ),
+        content: Text(
+          'Remove "${d.name}" from the list?\n\nThis only hides it here — to fully unpair, go to your phone\'s Bluetooth settings.',
+          style: const TextStyle(color: Color(0xFF888888), fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel',
+                style: TextStyle(color: Color(0xFF888888))),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child:
+                const Text('Remove', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      setState(() {
+        _found.remove(d.id);
+        _bondedIds.remove(d.id);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final devices = _found.values.toList()
@@ -261,6 +297,8 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
                                       color: Color(0xFF5599FF), size: 14)
                                   : null,
                           onTap: () => _select(d),
+                          onLongPress:
+                              isBonded ? () => _confirmRemove(d) : null,
                         );
                       },
                     ),
