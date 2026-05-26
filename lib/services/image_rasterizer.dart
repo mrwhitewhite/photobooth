@@ -119,6 +119,9 @@ class ImageRasterizer {
     return ctx;
   }
 
+  static const double _kWhiteGuard = 230.0;
+  static const double _kThreshold = 160.0;
+
   static Uint8List _floydSteinbergDither(
     Uint8ClampedList rgba,
     int width,
@@ -133,8 +136,9 @@ class ImageRasterizer {
       final r = rgba[base] * a + 255.0 * (1.0 - a);
       final g = rgba[base + 1] * a + 255.0 * (1.0 - a);
       final b = rgba[base + 2] * a + 255.0 * (1.0 - a);
+      final lum = 0.299 * r + 0.587 * g + 0.114 * b;
 
-      grey[i] = 0.299 * r + 0.587 * g + 0.114 * b;
+      grey[i] = lum >= _kWhiteGuard ? 255.0 : lum;
     }
 
     final out = Uint8List(totalPixels);
@@ -143,7 +147,8 @@ class ImageRasterizer {
       for (int x = 0; x < width; x++) {
         final idx = y * width + x;
         final oldVal = grey[idx].clamp(0.0, 255.0);
-        final newVal = oldVal < 128.0 ? 0.0 : 255.0;
+
+        final newVal = oldVal < _kThreshold ? 0.0 : 255.0;
         out[idx] = newVal.toInt();
         final err = oldVal - newVal;
 
