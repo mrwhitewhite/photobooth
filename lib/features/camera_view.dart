@@ -1,11 +1,12 @@
 import 'dart:async';
-import 'dart:js_interop';
+import 'dart:math';
 import 'dart:typed_data';
-import 'dart:ui_web' as ui_web;
+
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:web/web.dart' as web;
+
 import '../models/photo_models.dart';
 import '../services/photobooth_provider.dart';
 
@@ -18,8 +19,7 @@ class CameraView extends StatefulWidget {
 
 class CameraViewState extends State<CameraView>
     with SingleTickerProviderStateMixin {
-  late web.HTMLVideoElement _videoElement;
-  late String _viewID;
+  CameraController? _controller;
 
   int _countdown = 0;
   bool _showFlash = false;
@@ -35,7 +35,6 @@ class CameraViewState extends State<CameraView>
   @override
   void initState() {
     super.initState();
-    _viewID = 'camera-view-${DateTime.now().millisecondsSinceEpoch}';
 
     _countdownAnim = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 700));
@@ -43,18 +42,6 @@ class CameraViewState extends State<CameraView>
         CurvedAnimation(parent: _countdownAnim, curve: Curves.easeOut));
     _countdownOpacity = Tween<double>(begin: 1.0, end: 0.0)
         .animate(CurvedAnimation(parent: _countdownAnim, curve: Curves.easeIn));
-
-    _videoElement = web.document.createElement('video') as web.HTMLVideoElement
-      ..autoplay = true
-      ..muted = true
-      ..playsInline = true
-      ..style.transform = 'scaleX(-1)'
-      ..style.objectFit = 'cover'
-      ..style.width = '100%'
-      ..style.height = '100%';
-
-    ui_web.platformViewRegistry
-        .registerViewFactory(_viewID, (int _) => _videoElement);
 
     _initCamera();
 
@@ -64,7 +51,7 @@ class CameraViewState extends State<CameraView>
   @override
   void dispose() {
     _countdownAnim.dispose();
-    _stopCamera();
+    _controller?.dispose();
     super.dispose();
   }
 
@@ -86,30 +73,36 @@ class CameraViewState extends State<CameraView>
     }));
   }
 
-  void _stopCamera() {
-    if (_videoElement.srcObject != null) {
-      final stream = _videoElement.srcObject as web.MediaStream;
-      for (final track in stream.getTracks().toDart) {
-        track.stop();
-      }
-    }
-  }
-
   Future<void> _initCamera() async {
-    final constraints = {
-      'video': {'facingMode': 'user'},
-      'audio': false
-    }.jsify() as web.MediaStreamConstraints;
     try {
-      final stream = await web.window.navigator.mediaDevices
-          .getUserMedia(constraints)
-          .toDart;
-      _videoElement.srcObject = stream;
-      await _videoElement.play().toDart;
-      if (mounted) {
-        setState(() => _cameraReady = true);
-        Future.delayed(const Duration(seconds: 2), _startNextCapture);
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        debugPrint('No cameras available');
+        return;
       }
+
+      // Prefer front camera.
+      final frontCamera = cameras.firstWhere(
+        (c) => c.lensDirection == CameraLensDirection.front,
+        orElse: () => cameras.first,
+      );
+
+      final controller = CameraController(
+        frontCamera,
+        ResolutionPreset.high,
+        enableAudio: false,
+      );
+
+      await controller.initialize();
+
+      if (!mounted) {
+        controller.dispose();
+        return;
+      }
+
+      _controller = controller;
+      setState(() => _cameraReady = true);
+      Future.delayed(const Duration(seconds: 2), _startNextCapture);
     } catch (e) {
       debugPrint('Camera Error: $e');
     }
@@ -154,33 +147,11 @@ class CameraViewState extends State<CameraView>
 
   Future<Uint8List?> _captureFrame() async {
     try {
-      final canvas =
-          web.document.createElement('canvas') as web.HTMLCanvasElement;
-      canvas.width = _videoElement.videoWidth;
-      canvas.height = _videoElement.videoHeight;
-      final ctx = canvas.context2D;
+      final controller = _controller;
+      if (controller == null || !controller.value.isInitialized) return null;
 
-      ctx.translate(canvas.width.toDouble(), 0);
-      ctx.scale(-1, 1);
-      ctx.drawImage(_videoElement, 0, 0);
-
-      final completer = Completer<web.Blob>();
-      canvas.toBlob(
-          (web.Blob blob) {
-            completer.complete(blob);
-          }.toJS,
-          'image/jpeg',
-          0.92.jsify());
-      final blob = await completer.future;
-
-      final reader = web.FileReader();
-      reader.readAsArrayBuffer(blob);
-      await reader.onLoadEnd.first;
-
-      final result = reader.result;
-      if (result != null && result.isA<JSArrayBuffer>()) {
-        return (result as JSArrayBuffer).toDart.asUint8List();
-      }
+      final xFile = await controller.takePicture();
+      return await xFile.readAsBytes();
     } catch (e) {
       debugPrint('Capture error: $e');
     }
@@ -229,12 +200,12 @@ class CameraViewState extends State<CameraView>
                 ),
               ),
             ),
-          if (_cameraReady)
+          if (_cameraReady && _controller != null)
             _TemplateSlotView(
               layout: layout,
               slots: slots,
               templateImageSize: _templateImageSize,
-              viewID: _viewID,
+              controller: _controller!,
               provider: provider,
               countdown: _countdown,
               countdownAnim: _countdownAnim,
@@ -302,7 +273,7 @@ class _TemplateSlotView extends StatelessWidget {
   final PhotoLayout layout;
   final List<LayoutSlot> slots;
   final Size? templateImageSize;
-  final String viewID;
+  final CameraController controller;
   final PhotoboothProvider provider;
   final int countdown;
   final AnimationController countdownAnim;
@@ -313,7 +284,7 @@ class _TemplateSlotView extends StatelessWidget {
     required this.layout,
     required this.slots,
     required this.templateImageSize,
-    required this.viewID,
+    required this.controller,
     required this.provider,
     required this.countdown,
     required this.countdownAnim,
@@ -373,7 +344,20 @@ class _TemplateSlotView extends StatelessWidget {
               top: camTop,
               width: camW,
               height: camH,
-              child: HtmlElementView(viewType: viewID),
+              child: ClipRect(
+                child: Transform(
+                  alignment: Alignment.center,
+                  transform: Matrix4.rotationY(pi),
+                  child: FittedBox(
+                    fit: BoxFit.cover,
+                    child: SizedBox(
+                      width: controller.value.previewSize?.height ?? camW,
+                      height: controller.value.previewSize?.width ?? camH,
+                      child: CameraPreview(controller),
+                    ),
+                  ),
+                ),
+              ),
             ),
           if (hasActiveSlot)
             Positioned(

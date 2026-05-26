@@ -1,9 +1,11 @@
 import 'dart:async';
-import 'dart:js_interop';
 import 'dart:math';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:web/web.dart' as web;
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
+
 import '../models/photo_models.dart';
 
 class ImageProcessor {
@@ -15,34 +17,37 @@ class ImageProcessor {
     required PhotoLayout layout,
   }) async {
     final templateImg = await _loadAssetImage(layout.templateAsset);
-    final double templateW = templateImg.naturalWidth.toDouble();
-    final double templateH = templateImg.naturalHeight.toDouble();
+    final double templateW = templateImg.width.toDouble();
+    final double templateH = templateImg.height.toDouble();
 
     final double canvasW = templateW > 0 ? templateW : _outputW;
     final double canvasH = templateH > 0 ? templateH : _outputH;
 
-    final canvas =
-        web.document.createElement('canvas') as web.HTMLCanvasElement;
-    canvas.width = canvasW.toInt();
-    canvas.height = canvasH.toInt();
-    final ctx = canvas.context2D;
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(
+      recorder,
+      ui.Rect.fromLTWH(0, 0, canvasW, canvasH),
+    );
 
-    ctx.fillStyle = '#FFFFFF'.toJS;
-    ctx.fillRect(0, 0, canvasW, canvasH);
+    // White background.
+    canvas.drawRect(
+      ui.Rect.fromLTWH(0, 0, canvasW, canvasH),
+      ui.Paint()..color = const ui.Color(0xFFFFFFFF),
+    );
 
-    final templateCanvas =
-        web.document.createElement('canvas') as web.HTMLCanvasElement;
-    templateCanvas.width = canvasW.toInt();
-    templateCanvas.height = canvasH.toInt();
-    final templateCtx = templateCanvas.context2D;
-    templateCtx.drawImage(templateImg, 0, 0, canvasW, canvasH);
-    final detectedSlots = _detectTemplateSlots(
-        templateCtx, canvasW.toInt(), canvasH.toInt(), layout.photoCount);
+    // Detect template slots from transparent regions.
+    final detectedSlots = await _detectTemplateSlots(
+      templateImg,
+      canvasW.toInt(),
+      canvasH.toInt(),
+      layout.photoCount,
+    );
     final slots = detectedSlots.isNotEmpty ? detectedSlots : layout.slots;
 
+    // Draw each photo into its slot.
     for (int i = 0; i < photos.length && i < slots.length; i++) {
       final slot = slots[i];
-      final photoImg = await _loadBytesImage(photos[i]);
+      final photoImg = await _decodeImage(photos[i]);
 
       final double slotX = slot.x * canvasW;
       final double slotY = slot.y * canvasH;
@@ -51,73 +56,85 @@ class ImageProcessor {
 
       final fit = _shouldCoverFit(layout)
           ? _coverFit(
-              photoImg.naturalWidth.toDouble(),
-              photoImg.naturalHeight.toDouble(),
+              photoImg.width.toDouble(),
+              photoImg.height.toDouble(),
               slotW,
               slotH,
             )
           : _containFit(
-              photoImg.naturalWidth.toDouble(),
-              photoImg.naturalHeight.toDouble(),
+              photoImg.width.toDouble(),
+              photoImg.height.toDouble(),
               slotW,
               slotH,
             );
 
-      ctx.save();
+      canvas.save();
+      canvas.clipRect(ui.Rect.fromLTWH(slotX, slotY, slotW, slotH));
 
-      ctx.beginPath();
-      ctx.rect(slotX, slotY, slotW, slotH);
-      ctx.clip();
-
-      ctx.drawImage(
+      canvas.drawImageRect(
         photoImg,
-        0,
-        0,
-        photoImg.naturalWidth.toDouble(),
-        photoImg.naturalHeight.toDouble(),
-        slotX + fit.offsetX,
-        slotY + fit.offsetY,
-        fit.width,
-        fit.height,
+        ui.Rect.fromLTWH(
+          0,
+          0,
+          photoImg.width.toDouble(),
+          photoImg.height.toDouble(),
+        ),
+        ui.Rect.fromLTWH(
+          slotX + fit.offsetX,
+          slotY + fit.offsetY,
+          fit.width,
+          fit.height,
+        ),
+        ui.Paint()..filterQuality = ui.FilterQuality.high,
       );
-      ctx.restore();
+      canvas.restore();
+      photoImg.dispose();
     }
 
-    ctx.drawImage(templateImg, 0, 0, canvasW, canvasH);
+    // Draw template overlay on top.
+    canvas.drawImageRect(
+      templateImg,
+      ui.Rect.fromLTWH(
+        0,
+        0,
+        templateImg.width.toDouble(),
+        templateImg.height.toDouble(),
+      ),
+      ui.Rect.fromLTWH(0, 0, canvasW, canvasH),
+      ui.Paint()..filterQuality = ui.FilterQuality.high,
+    );
 
-    return _canvasToBytes(canvas);
+    templateImg.dispose();
+
+    // Encode to PNG.
+    final picture = recorder.endRecording();
+    final composited =
+        await picture.toImage(canvasW.toInt(), canvasH.toInt());
+    final ByteData? pngData =
+        await composited.toByteData(format: ui.ImageByteFormat.png);
+    composited.dispose();
+    picture.dispose();
+
+    if (pngData == null) {
+      throw StateError('Failed to encode composite image as PNG.');
+    }
+
+    return pngData.buffer.asUint8List();
   }
 
-  static Future<web.HTMLImageElement> _loadAssetImage(String assetPath) async {
+  /// Loads an image from the asset bundle.
+  static Future<ui.Image> _loadAssetImage(String assetPath) async {
     final byteData = await rootBundle.load(assetPath);
     final bytes = byteData.buffer.asUint8List();
-    return _loadBytesImage(bytes);
+    return _decodeImage(bytes);
   }
 
-  static Future<web.HTMLImageElement> _loadBytesImage(Uint8List bytes) async {
-    final isPng = bytes.length > 4 &&
-        bytes[0] == 0x89 &&
-        bytes[1] == 0x50 &&
-        bytes[2] == 0x4E &&
-        bytes[3] == 0x47;
-    final mimeType = isPng ? 'image/png' : 'image/jpeg';
-    final blob =
-        web.Blob([bytes.toJS].toJS, web.BlobPropertyBag(type: mimeType));
-    final url = web.URL.createObjectURL(blob);
-    final img = web.HTMLImageElement();
-    img.src = url;
-
-    final completer = Completer<web.HTMLImageElement>();
-    img.onload = (web.Event _) {
-      web.URL.revokeObjectURL(url);
-      completer.complete(img);
-    }.toJS;
-    img.onerror = (web.Event _) {
-      web.URL.revokeObjectURL(url);
-      completer.completeError('Failed to load image');
-    }.toJS;
-
-    return completer.future;
+  /// Decodes raw image bytes into a [ui.Image].
+  static Future<ui.Image> _decodeImage(Uint8List bytes) async {
+    final codec = await ui.instantiateImageCodec(bytes);
+    final frame = await codec.getNextFrame();
+    codec.dispose();
+    return frame.image;
   }
 
   static _FitResult _containFit(
@@ -176,16 +193,43 @@ class ImageProcessor {
     return layout == PhotoLayout.layout2x2 || layout == PhotoLayout.layout3x1;
   }
 
-  static List<LayoutSlot> _detectTemplateSlots(
-    web.CanvasRenderingContext2D ctx,
+  /// Detects transparent slot regions in the template image.
+  static Future<List<LayoutSlot>> _detectTemplateSlots(
+    ui.Image templateImg,
     int width,
     int height,
     int expectedCount,
-  ) {
-    final imageData = ctx.getImageData(0, 0, width, height);
-    final pixels = imageData.data.toDart;
+  ) async {
+    // Scale the template to the target dimensions and read pixel data.
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(
+      recorder,
+      ui.Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()),
+    );
+    canvas.drawImageRect(
+      templateImg,
+      ui.Rect.fromLTWH(
+        0,
+        0,
+        templateImg.width.toDouble(),
+        templateImg.height.toDouble(),
+      ),
+      ui.Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()),
+      ui.Paint()..filterQuality = ui.FilterQuality.high,
+    );
+    final picture = recorder.endRecording();
+    final rendered = await picture.toImage(width, height);
+    final ByteData? pixelData =
+        await rendered.toByteData(format: ui.ImageByteFormat.rawRgba);
+    rendered.dispose();
+    picture.dispose();
 
-    final List<List<_Segment>> rowSegments = List.generate(height, (_) => []);
+    if (pixelData == null) return const [];
+
+    final pixels = pixelData.buffer.asUint8List();
+
+    final List<List<_Segment>> rowSegments =
+        List.generate(height, (_) => []);
     for (var y = 0; y < height; y++) {
       var x = 0;
       while (x < width) {
@@ -207,7 +251,8 @@ class ImageProcessor {
 
     for (var y = 0; y < height; y++) {
       final segments = rowSegments[y];
-      final matched = List<bool>.filled(active.length, false, growable: true);
+      final matched =
+          List<bool>.filled(active.length, false, growable: true);
 
       for (final segment in segments) {
         var matchedBox = false;
@@ -273,32 +318,16 @@ class ImageProcessor {
     }).toList();
   }
 
-  static Future<Uint8List> _canvasToBytes(web.HTMLCanvasElement canvas) {
-    final completer = Completer<Uint8List>();
-    canvas.toBlob(
-      (web.Blob blob) {
-        final reader = web.FileReader();
-        reader.readAsArrayBuffer(blob);
-        reader.onloadend = (web.Event _) {
-          final buffer = (reader.result as JSArrayBuffer).toDart;
-          completer.complete(buffer.asUint8List());
-        }.toJS;
-      }.toJS,
-      'image/png',
+  /// Saves image bytes to the device gallery.
+  static Future<void> saveToGallery(Uint8List bytes, String name) async {
+    final result = await ImageGallerySaverPlus.saveImage(
+      bytes,
+      name: name,
+      quality: 100,
     );
-    return completer.future;
-  }
-
-  static void downloadFile(Uint8List bytes, String filename) {
-    final blob = web.Blob([bytes.toJS].toJS);
-    final url = web.URL.createObjectURL(blob);
-    final a = web.document.createElement('a') as web.HTMLAnchorElement;
-    a.href = url;
-    a.download = filename;
-    web.document.body!.append(a);
-    a.click();
-    a.remove();
-    web.URL.revokeObjectURL(url);
+    if (result == null || result['isSuccess'] != true) {
+      throw Exception('Failed to save image to gallery');
+    }
   }
 }
 

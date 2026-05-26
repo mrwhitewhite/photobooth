@@ -11,11 +11,6 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Web Interop & Compatibility
-  web: ^0.5.1
-  flutter_web_plugins:
-    sdk: flutter
-
   # State Management
   provider: ^6.1.2
 
@@ -23,8 +18,21 @@ dependencies:
   google_fonts: ^6.2.1
   flutter_animate: ^4.5.0
 
-  # Networking
-  http: ^1.2.1
+  # Printing
+  x_printer: ^0.0.7
+
+  # Camera
+  camera: ^0.11.0+2
+
+  # Video Playback
+  video_player: ^2.9.2
+
+  # File System & Gallery
+  path_provider: ^2.1.5
+  image_gallery_saver_plus: ^4.0.1
+
+  # Permissions
+  permission_handler: ^11.3.1
 
 dev_dependencies:
   flutter_test:
