@@ -4,18 +4,22 @@ import 'image_rasterizer.dart';
 import 'web_bluetooth_transport.dart';
 
 class PrinterService {
-  static String serviceUuid = '000018f0-0000-1000-8000-00805f9b34fb';
+  // Standard XPrinter BLE service/characteristic UUIDs (unchanged).
+  static const String serviceUuid = '000018f0-0000-1000-8000-00805f9b34fb';
+  static const String characteristicUuid =
+      '00002af1-0000-1000-8000-00805f9b34fb';
 
-  static String characteristicUuid = '00002af1-0000-1000-8000-00805f9b34fb';
+  // XP-N160II print head is 576 dots wide (80 mm × 8 dots/mm × 0.9 coverage).
+  static const int _paperWidthPx = 576;
 
   static final WebBluetoothTransport _transport = WebBluetoothTransport(
-    chunkSize: 504,
-    interChunkDelayMs: 20,
+    chunkSize: 512,
+    interChunkDelayMs: 30,
   );
 
   static Future<void> printReceipt(
     Uint8List imageBytes, {
-    int paperWidthPx = 576,
+    int paperWidthPx = _paperWidthPx,
   }) async {
     try {
       await _transport.connect(
@@ -23,9 +27,10 @@ class PrinterService {
         characteristicUuid: characteristicUuid,
       );
 
+      // Send init command and give the printer a moment to apply the reset
+      // before the raster data starts arriving.
       await _transport.sendData(ImageRasterizer.buildInitCommand());
-
-      await Future<void>.delayed(const Duration(milliseconds: 100));
+      await Future<void>.delayed(const Duration(milliseconds: 150));
 
       final rasterPayload = await ImageRasterizer.processAndBuildRaster(
         imageBytes,
@@ -34,7 +39,9 @@ class PrinterService {
 
       await _transport.sendData(rasterPayload);
 
-      await Future<void>.delayed(const Duration(milliseconds: 500));
+      // Wait for the printer to finish consuming the raster buffer before
+      // issuing the cut. 600 ms covers even tall photo-strip payloads.
+      await Future<void>.delayed(const Duration(milliseconds: 600));
       await _transport.sendData(ImageRasterizer.buildFeedCutCommand());
     } on PrinterTransportException catch (e) {
       throw PrinterException(e.message);
@@ -51,7 +58,6 @@ class PrinterService {
 class PrinterException implements Exception {
   final String message;
   const PrinterException(this.message);
-
   @override
   String toString() => 'PrinterException: $message';
 }
