@@ -74,10 +74,37 @@ class _PreviewScreenState extends State<PreviewScreen>
     }
   }
 
-  void _download() {
+  Future<void> _download() async {
     if (_composite == null) return;
-    final ts = DateTime.now().millisecondsSinceEpoch;
-    ImageProcessor.downloadFile(_composite!, 'myreceipt_$ts.png');
+    try {
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      await ImageProcessor.saveToGallery(_composite!, 'myreceipt_$ts');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Saved to Gallery ✓',
+              style: TextStyle(fontFamily: 'PoppinsMedium', letterSpacing: 1),
+            ),
+            backgroundColor: Color(0xFF1E3A1E),
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.all(16),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Save failed: $e'),
+            backgroundColor: const Color(0xFFFF6B6B),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _print() async {

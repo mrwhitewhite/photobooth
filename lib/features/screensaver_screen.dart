@@ -1,10 +1,7 @@
-import 'dart:js_interop';
 import 'dart:math';
-import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
-
 import 'package:provider/provider.dart';
-import 'package:web/web.dart' as web;
+import 'package:video_player/video_player.dart';
 import '../services/photobooth_provider.dart';
 
 const _kVideos = [
@@ -21,8 +18,7 @@ class ScreensaverScreen extends StatefulWidget {
 
 class _ScreensaverScreenState extends State<ScreensaverScreen>
     with SingleTickerProviderStateMixin {
-  late web.HTMLVideoElement _video;
-  late String _viewId;
+  late VideoPlayerController _controller;
   bool _videoPlaying = false;
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseAnim;
@@ -38,24 +34,12 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
         .animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
 
     final path = _kVideos[Random().nextInt(_kVideos.length)];
-    _viewId = 'screensaver-video-${DateTime.now().millisecondsSinceEpoch}';
 
-    _video = web.document.createElement('video') as web.HTMLVideoElement
-      ..autoplay = true
-      ..muted = true
-      ..loop = true
-      ..playsInline = true
-      ..style.objectFit = 'cover'
-      ..style.width = '100%'
-      ..style.height = '100%'
-      ..src = path;
-
-    ui_web.platformViewRegistry.registerViewFactory(
-      _viewId,
-      (int _) => _video,
-    );
-
-    _video.play().toDart.then((_) {
+    _controller = VideoPlayerController.asset(path);
+    _controller.initialize().then((_) {
+      _controller.setLooping(true);
+      _controller.setVolume(0);
+      _controller.play();
       if (mounted) setState(() => _videoPlaying = true);
     }).catchError((_) {
       if (mounted) setState(() => _videoPlaying = false);
@@ -65,15 +49,14 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
   @override
   void dispose() {
     _pulseCtrl.dispose();
-    _video.pause();
-    _video.src = '';
+    _controller.dispose();
     super.dispose();
   }
 
   void _onTap() {
     final provider = context.read<PhotoboothProvider>();
     if (!_videoPlaying) {
-      _video.play().toDart.then((_) {
+      _controller.play().then((_) {
         if (mounted) setState(() => _videoPlaying = true);
       }).catchError((_) {});
     }
@@ -91,7 +74,19 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
       child: Stack(
         fit: StackFit.expand,
         children: [
-          HtmlElementView(key: ValueKey(_viewId), viewType: _viewId),
+          if (_videoPlaying)
+            ClipRect(
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: _controller.value.size.width,
+                  height: _controller.value.size.height,
+                  child: VideoPlayer(_controller),
+                ),
+              ),
+            )
+          else
+            const ColoredBox(color: Colors.black),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: RadialGradient(
