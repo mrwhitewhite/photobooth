@@ -1,11 +1,10 @@
-import 'dart:async';
-import 'dart:js_interop';
 import 'dart:typed_data';
-import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
+import 'package:image/image.dart' as img;
+import 'package:permission_handler/permission_handler.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:web/web.dart' as web;
 import '../models/photo_models.dart';
 import '../services/photobooth_provider.dart';
 
@@ -18,13 +17,13 @@ class CameraView extends StatefulWidget {
 
 class CameraViewState extends State<CameraView>
     with SingleTickerProviderStateMixin {
-  late web.HTMLVideoElement _videoElement;
-  late String _viewID;
+  CameraController? _controller;
 
   int _countdown = 0;
   bool _showFlash = false;
   bool _isCapturing = false;
   bool _cameraReady = false;
+  String? _cameraError;
 
   Size? _templateImageSize;
 
@@ -35,7 +34,6 @@ class CameraViewState extends State<CameraView>
   @override
   void initState() {
     super.initState();
-    _viewID = 'camera-view-${DateTime.now().millisecondsSinceEpoch}';
 
     _countdownAnim = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 700));
@@ -43,18 +41,6 @@ class CameraViewState extends State<CameraView>
         CurvedAnimation(parent: _countdownAnim, curve: Curves.easeOut));
     _countdownOpacity = Tween<double>(begin: 1.0, end: 0.0)
         .animate(CurvedAnimation(parent: _countdownAnim, curve: Curves.easeIn));
-
-    _videoElement = web.document.createElement('video') as web.HTMLVideoElement
-      ..autoplay = true
-      ..muted = true
-      ..playsInline = true
-      ..style.transform = 'scaleX(-1)'
-      ..style.objectFit = 'cover'
-      ..style.width = '100%'
-      ..style.height = '100%';
-
-    ui_web.platformViewRegistry
-        .registerViewFactory(_viewID, (int _) => _videoElement);
 
     _initCamera();
 
@@ -64,7 +50,7 @@ class CameraViewState extends State<CameraView>
   @override
   void dispose() {
     _countdownAnim.dispose();
-    _stopCamera();
+    _controller?.dispose();
     super.dispose();
   }
 
@@ -86,32 +72,56 @@ class CameraViewState extends State<CameraView>
     }));
   }
 
-  void _stopCamera() {
-    if (_videoElement.srcObject != null) {
-      final stream = _videoElement.srcObject as web.MediaStream;
-      for (final track in stream.getTracks().toDart) {
-        track.stop();
-      }
-    }
-  }
-
   Future<void> _initCamera() async {
-    final constraints = {
-      'video': {'facingMode': 'user'},
-      'audio': false
-    }.jsify() as web.MediaStreamConstraints;
     try {
-      final stream = await web.window.navigator.mediaDevices
-          .getUserMedia(constraints)
-          .toDart;
-      _videoElement.srcObject = stream;
-      await _videoElement.play().toDart;
-      if (mounted) {
-        setState(() => _cameraReady = true);
-        Future.delayed(const Duration(seconds: 2), _startNextCapture);
+      final permission = await Permission.camera.request();
+      if (!permission.isGranted) {
+        if (mounted) {
+          setState(() {
+            _cameraError = 'Camera permission is required to continue.';
+            _cameraReady = false;
+          });
+        }
+        return;
       }
+
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _cameraError = 'No camera found on this device.';
+            _cameraReady = false;
+          });
+        }
+        return;
+      }
+
+      final selected = cameras.firstWhere(
+        (c) => c.lensDirection == CameraLensDirection.front,
+        orElse: () => cameras.first,
+      );
+
+      final controller = CameraController(
+        selected,
+        ResolutionPreset.high,
+        enableAudio: false,
+      );
+      _controller = controller;
+      await controller.initialize();
+
+      if (!mounted) return;
+      setState(() {
+        _cameraReady = true;
+        _cameraError = null;
+      });
+      Future.delayed(const Duration(seconds: 2), _startNextCapture);
     } catch (e) {
-      debugPrint('Camera Error: $e');
+      if (mounted) {
+        setState(() {
+          _cameraError = 'Camera error: $e';
+          _cameraReady = false;
+        });
+      }
     }
   }
 
@@ -154,33 +164,18 @@ class CameraViewState extends State<CameraView>
 
   Future<Uint8List?> _captureFrame() async {
     try {
-      final canvas =
-          web.document.createElement('canvas') as web.HTMLCanvasElement;
-      canvas.width = _videoElement.videoWidth;
-      canvas.height = _videoElement.videoHeight;
-      final ctx = canvas.context2D;
+      final controller = _controller;
+      if (controller == null || !controller.value.isInitialized) return null;
+      if (controller.value.isTakingPicture) return null;
 
-      ctx.translate(canvas.width.toDouble(), 0);
-      ctx.scale(-1, 1);
-      ctx.drawImage(_videoElement, 0, 0);
+      final file = await controller.takePicture();
+      final bytes = await file.readAsBytes();
+      final decoded = img.decodeImage(bytes);
+      if (decoded == null) return bytes;
 
-      final completer = Completer<web.Blob>();
-      canvas.toBlob(
-          (web.Blob blob) {
-            completer.complete(blob);
-          }.toJS,
-          'image/jpeg',
-          0.92.jsify());
-      final blob = await completer.future;
-
-      final reader = web.FileReader();
-      reader.readAsArrayBuffer(blob);
-      await reader.onLoadEnd.first;
-
-      final result = reader.result;
-      if (result != null && result.isA<JSArrayBuffer>()) {
-        return (result as JSArrayBuffer).toDart.asUint8List();
-      }
+      final flipped = img.flipHorizontal(decoded);
+      final encoded = img.encodeJpg(flipped, quality: 92);
+      return Uint8List.fromList(encoded);
     } catch (e) {
       debugPrint('Capture error: $e');
     }
@@ -214,17 +209,32 @@ class CameraViewState extends State<CameraView>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const CircularProgressIndicator(
-                        color: Color(0xFFE8C8A0), strokeWidth: 1.5),
-                    const SizedBox(height: 20),
-                    Text(
-                      'STARTING CAMERA',
-                      style: GoogleFonts.lato(
-                        fontSize: 10,
-                        letterSpacing: 4,
-                        color: Colors.white54,
+                    if (_cameraError == null) ...[
+                      const CircularProgressIndicator(
+                          color: Color(0xFFE8C8A0), strokeWidth: 1.5),
+                      const SizedBox(height: 20),
+                      Text(
+                        'STARTING CAMERA',
+                        style: GoogleFonts.lato(
+                          fontSize: 10,
+                          letterSpacing: 4,
+                          color: Colors.white54,
+                        ),
                       ),
-                    ),
+                    ] else ...[
+                      const Icon(Icons.error_outline,
+                          color: Color(0xFFE8C8A0), size: 40),
+                      const SizedBox(height: 16),
+                      Text(
+                        _cameraError!,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.lato(
+                          fontSize: 12,
+                          letterSpacing: 1,
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -234,7 +244,7 @@ class CameraViewState extends State<CameraView>
               layout: layout,
               slots: slots,
               templateImageSize: _templateImageSize,
-              viewID: _viewID,
+              cameraPreview: _buildCameraPreview(),
               provider: provider,
               countdown: _countdown,
               countdownAnim: _countdownAnim,
@@ -249,6 +259,30 @@ class CameraViewState extends State<CameraView>
               child: Container(color: Colors.white),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCameraPreview() {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) {
+      return const SizedBox.shrink();
+    }
+    final size = controller.value.previewSize;
+    if (size == null) return const SizedBox.shrink();
+
+    return ClipRect(
+      child: FittedBox(
+        fit: BoxFit.cover,
+        child: SizedBox(
+          width: size.width,
+          height: size.height,
+          child: Transform(
+            alignment: Alignment.center,
+            transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
+            child: CameraPreview(controller),
+          ),
+        ),
       ),
     );
   }
@@ -302,7 +336,7 @@ class _TemplateSlotView extends StatelessWidget {
   final PhotoLayout layout;
   final List<LayoutSlot> slots;
   final Size? templateImageSize;
-  final String viewID;
+  final Widget cameraPreview;
   final PhotoboothProvider provider;
   final int countdown;
   final AnimationController countdownAnim;
@@ -313,7 +347,7 @@ class _TemplateSlotView extends StatelessWidget {
     required this.layout,
     required this.slots,
     required this.templateImageSize,
-    required this.viewID,
+    required this.cameraPreview,
     required this.provider,
     required this.countdown,
     required this.countdownAnim,
@@ -373,7 +407,7 @@ class _TemplateSlotView extends StatelessWidget {
               top: camTop,
               width: camW,
               height: camH,
-              child: HtmlElementView(viewType: viewID),
+              child: cameraPreview,
             ),
           if (hasActiveSlot)
             Positioned(

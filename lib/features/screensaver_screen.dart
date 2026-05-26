@@ -1,15 +1,12 @@
-import 'dart:js_interop';
 import 'dart:math';
-import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
-
+import 'package:video_player/video_player.dart';
 import 'package:provider/provider.dart';
-import 'package:web/web.dart' as web;
 import '../services/photobooth_provider.dart';
 
 const _kVideos = [
-  'assets/screen_saver/screen_saver_1.mov',
-  'assets/screen_saver/screen_saver_2.mov',
+  'assets/screen_saver/screen_saver_1.mp4',
+  'assets/screen_saver/screen_saver_2.mp4',
 ];
 
 class ScreensaverScreen extends StatefulWidget {
@@ -21,8 +18,7 @@ class ScreensaverScreen extends StatefulWidget {
 
 class _ScreensaverScreenState extends State<ScreensaverScreen>
     with SingleTickerProviderStateMixin {
-  late web.HTMLVideoElement _video;
-  late String _viewId;
+  VideoPlayerController? _controller;
   bool _videoPlaying = false;
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseAnim;
@@ -38,42 +34,30 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
         .animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
 
     final path = _kVideos[Random().nextInt(_kVideos.length)];
-    _viewId = 'screensaver-video-${DateTime.now().millisecondsSinceEpoch}';
-
-    _video = web.document.createElement('video') as web.HTMLVideoElement
-      ..autoplay = true
-      ..muted = true
-      ..loop = true
-      ..playsInline = true
-      ..style.objectFit = 'cover'
-      ..style.width = '100%'
-      ..style.height = '100%'
-      ..src = path;
-
-    ui_web.platformViewRegistry.registerViewFactory(
-      _viewId,
-      (int _) => _video,
-    );
-
-    _video.play().toDart.then((_) {
-      if (mounted) setState(() => _videoPlaying = true);
-    }).catchError((_) {
-      if (mounted) setState(() => _videoPlaying = false);
-    });
+    _controller = VideoPlayerController.asset(path)
+      ..setLooping(true)
+      ..setVolume(0)
+      ..initialize().then((_) {
+        if (!mounted) return;
+        _controller!.play();
+        setState(() => _videoPlaying = true);
+      }).catchError((_) {
+        if (mounted) setState(() => _videoPlaying = false);
+      });
   }
 
   @override
   void dispose() {
     _pulseCtrl.dispose();
-    _video.pause();
-    _video.src = '';
+    _controller?.dispose();
     super.dispose();
   }
 
   void _onTap() {
     final provider = context.read<PhotoboothProvider>();
-    if (!_videoPlaying) {
-      _video.play().toDart.then((_) {
+    final controller = _controller;
+    if (controller != null && !controller.value.isPlaying) {
+      controller.play().then((_) {
         if (mounted) setState(() => _videoPlaying = true);
       }).catchError((_) {});
     }
@@ -88,10 +72,20 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: _onTap,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          HtmlElementView(key: ValueKey(_viewId), viewType: _viewId),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (_controller != null && _controller!.value.isInitialized)
+              FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: _controller!.value.size.width,
+                  height: _controller!.value.size.height,
+                  child: VideoPlayer(_controller!),
+                ),
+              )
+            else
+              const ColoredBox(color: Colors.black),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: RadialGradient(

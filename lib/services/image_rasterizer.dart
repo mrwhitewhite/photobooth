@@ -1,10 +1,7 @@
-import 'dart:async';
 import 'dart:math' show pow;
 import 'dart:typed_data';
-import 'dart:js_interop';
-import 'dart:js_interop_unsafe';
 
-import 'package:web/web.dart' as web;
+import 'package:image/image.dart' as img;
 
 class ImageRasterizer {
   static Future<Uint8List> processAndBuildRaster(
@@ -49,31 +46,13 @@ class ImageRasterizer {
     Uint8List pngBytes,
     int targetWidthPx,
   ) async {
-    final blob = web.Blob(
-      [pngBytes.toJS].toJS,
-      web.BlobPropertyBag(type: 'image/png'),
-    );
-    final objectUrl = web.URL.createObjectURL(blob);
+    final decoded = img.decodeImage(pngBytes);
+    if (decoded == null) {
+      throw const ImageRasterizerException('PNG decode failed.');
+    }
 
-    final img = web.HTMLImageElement();
-    final loadCompleter = Completer<void>();
-
-    img.onload = (web.Event event) {
-      loadCompleter.complete();
-    }.toJS;
-    img.onerror = (web.Event event) {
-      loadCompleter.completeError(
-        const ImageRasterizerException('PNG decode failed.'),
-      );
-    }.toJS;
-
-    img.src = objectUrl;
-    await loadCompleter.future;
-
-    web.URL.revokeObjectURL(objectUrl);
-
-    final srcW = img.naturalWidth;
-    final srcH = img.naturalHeight;
+    final srcW = decoded.width;
+    final srcH = decoded.height;
 
     if (srcW == 0 || srcH == 0) {
       throw const ImageRasterizerException(
@@ -85,51 +64,31 @@ class ImageRasterizer {
     final targetW = targetWidthPx;
     final targetH = (srcH * scale).round();
 
-    var currentW = srcW;
-    var currentH = srcH;
-
-    var currentCanvas = web.HTMLCanvasElement();
-    currentCanvas.width = currentW;
-    currentCanvas.height = currentH;
-    var currentCtx = _getHighQualityContext(currentCanvas);
-    currentCtx.drawImage(img, 0, 0, currentW, currentH);
-
-    while (currentW > targetW * 2) {
-      final nextW = (currentW / 2).round();
-      final nextH = (currentH / 2).round();
-
-      final nextCanvas = web.HTMLCanvasElement();
-      nextCanvas.width = nextW;
-      nextCanvas.height = nextH;
-      final nextCtx = _getHighQualityContext(nextCanvas);
-
-      nextCtx.drawImage(currentCanvas, 0, 0, nextW, nextH);
-
-      currentCanvas = nextCanvas;
-      currentW = nextW;
-      currentH = nextH;
+    var current = decoded;
+    while (current.width > targetW * 2) {
+      final nextW = (current.width / 2).round();
+      final nextH = (current.height / 2).round();
+      current = img.copyResize(
+        current,
+        width: nextW,
+        height: nextH,
+        interpolation: img.Interpolation.cubic,
+      );
     }
 
-    final finalCanvas = web.HTMLCanvasElement();
-    finalCanvas.width = targetW;
-    finalCanvas.height = targetH;
-    final finalCtx = _getHighQualityContext(finalCanvas);
-    finalCtx.drawImage(currentCanvas, 0, 0, targetW, targetH);
+    final resized = img.copyResize(
+      current,
+      width: targetW,
+      height: targetH,
+      interpolation: img.Interpolation.cubic,
+    );
 
-    final imageData = finalCtx.getImageData(0, 0, targetW, targetH);
-    final pixels = imageData.data.toDart;
-
-    return _RgbaImage(pixels: pixels, width: targetW, height: targetH);
-  }
-
-  static web.CanvasRenderingContext2D _getHighQualityContext(
-    web.HTMLCanvasElement canvas,
-  ) {
-    final ctx = canvas.getContext('2d')! as web.CanvasRenderingContext2D;
-    ctx.imageSmoothingEnabled = true;
-
-    (ctx as JSObject)['imageSmoothingQuality'] = 'high'.toJS;
-    return ctx;
+    final rgbaBytes = resized.getBytes(format: img.Format.rgba);
+    return _RgbaImage(
+      pixels: Uint8ClampedList.fromList(rgbaBytes),
+      width: targetW,
+      height: targetH,
+    );
   }
 
   static Uint8List _floydSteinbergDither(

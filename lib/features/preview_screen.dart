@@ -74,16 +74,17 @@ class _PreviewScreenState extends State<PreviewScreen>
     }
   }
 
-  void _download() {
+  Future<void> _download() async {
     if (_composite == null) return;
     final ts = DateTime.now().millisecondsSinceEpoch;
-    ImageProcessor.downloadFile(_composite!, 'myreceipt_$ts.png');
+    await ImageProcessor.downloadFile(_composite!, 'myreceipt_$ts.png');
   }
 
   Future<void> _print() async {
     if (_composite == null || _isPrinting) return;
     setState(() => _isPrinting = true);
     try {
+      await PrinterService.ensureBluetoothPermissions();
       await PrinterService.printReceipt(_composite!);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -107,7 +108,7 @@ class _PreviewScreenState extends State<PreviewScreen>
       if (mounted) {
         PrinterService.disconnect();
         _showPrintError(
-          'Bluetooth error — tap PRINT again to reconnect.\n${e.toString()}',
+          'Bluetooth error — tap PRINT to reconnect.\n${e.toString()}',
         );
       }
     } finally {

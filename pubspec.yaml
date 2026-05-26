@@ -11,11 +11,6 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Web Interop & Compatibility
-  web: ^0.5.1
-  flutter_web_plugins:
-    sdk: flutter
-
   # State Management
   provider: ^6.1.2
 
@@ -23,8 +18,14 @@ dependencies:
   google_fonts: ^6.2.1
   flutter_animate: ^4.5.0
 
-  # Networking
-  http: ^1.2.1
+  # Native Camera, Video, Bluetooth, Image Processing
+  camera: ^0.11.0
+  video_player: ^2.9.0
+  flutter_blue_plus: ^1.32.0
+  image: ^4.2.0
+  permission_handler: ^11.3.0
+  path_provider: ^2.1.0
+  share_plus: ^9.0.0
 
 dev_dependencies:
   flutter_test:
@@ -43,8 +44,8 @@ flutter:
     - assets/layout/2x2.PNG
     - assets/layout/3x1.png
     - assets/layout/4x2.png
-    - assets/screen_saver/screen_saver_1.mov
-    - assets/screen_saver/screen_saver_2.mov
+    - assets/screen_saver/screen_saver_1.mp4
+    - assets/screen_saver/screen_saver_2.mp4
 
   fonts:
     - family: CHAOS16

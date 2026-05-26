@@ -1,45 +1,11 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
-import 'dart:js_interop';
 
-@JS('navigator.bluetooth.requestDevice')
-external JSPromise<JSObject> _jsRequestDevice(JSObject options);
-
-@JS()
-extension type BluetoothDevice._(JSObject _) implements JSObject {
-  external JSString get name;
-
-  external BluetoothRemoteGATTServer get gatt;
-}
-
-@JS()
-extension type BluetoothRemoteGATTServer._(JSObject _) implements JSObject {
-  external JSPromise<BluetoothRemoteGATTServer> connect();
-
-  external JSPromise<BluetoothRemoteGATTService> getPrimaryService(
-    JSAny serviceUuid,
-  );
-}
-
-@JS()
-extension type BluetoothRemoteGATTService._(JSObject _) implements JSObject {
-  external JSPromise<BluetoothRemoteGATTCharacteristic> getCharacteristic(
-    JSAny characteristicUuid,
-  );
-}
-
-@JS()
-extension type BluetoothRemoteGATTCharacteristic._(JSObject _)
-    implements JSObject {
-  external JSPromise<JSAny?> writeValueWithResponse(JSArrayBuffer value);
-
-  external JSPromise<JSAny?> writeValueWithoutResponse(JSArrayBuffer value);
-}
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 class WebBluetoothTransport {
   final int chunkSize;
-
   final int interChunkDelayMs;
 
   WebBluetoothTransport({
@@ -47,7 +13,8 @@ class WebBluetoothTransport {
     this.interChunkDelayMs = 30,
   });
 
-  BluetoothRemoteGATTCharacteristic? _cachedCharacteristic;
+  BluetoothDevice? _device;
+  BluetoothCharacteristic? _cachedCharacteristic;
 
   bool get isConnected => _cachedCharacteristic != null;
 
@@ -57,30 +24,58 @@ class WebBluetoothTransport {
   }) async {
     if (_cachedCharacteristic != null) return;
 
+    final serviceGuid = Guid(serviceUuid);
+    final characteristicGuid = Guid(characteristicUuid);
+
     try {
-      final filterEntry = <String, Object>{
-        'services': <String>[serviceUuid],
-      };
-      final options = <String, Object>{
-        'filters': <Object>[filterEntry],
-        'optionalServices': <String>[serviceUuid],
-      }.jsify() as JSObject;
+      await FlutterBluePlus.startScan(
+        withServices: [serviceGuid],
+        timeout: const Duration(seconds: 10),
+      );
 
-      final device = await _jsRequestDevice(options).toDart as BluetoothDevice;
+      final scanResults = await FlutterBluePlus.scanResults
+          .timeout(const Duration(seconds: 12))
+          .firstWhere((results) => results.isNotEmpty);
 
-      final server = await device.gatt.connect().toDart;
+      await FlutterBluePlus.stopScan();
 
-      final service = await server.getPrimaryService(serviceUuid.toJS).toDart;
+      final device = scanResults.first.device;
+      _device = device;
 
-      final characteristic =
-          await service.getCharacteristic(characteristicUuid.toJS).toDart;
+      await device.connect(
+        timeout: const Duration(seconds: 10),
+        autoConnect: false,
+      );
+
+      final services = await device.discoverServices();
+      final service = services.firstWhere(
+        (s) => s.uuid == serviceGuid,
+        orElse: () {
+          throw const PrinterTransportException(
+            'Bluetooth service not found on device.',
+          );
+        },
+      );
+
+      final characteristic = service.characteristics.firstWhere(
+        (c) => c.uuid == characteristicGuid,
+        orElse: () {
+          throw const PrinterTransportException(
+            'Bluetooth characteristic not found on device.',
+          );
+        },
+      );
 
       _cachedCharacteristic = characteristic;
     } catch (e) {
       _cachedCharacteristic = null;
+      await _device?.disconnect();
+      _device = null;
       throw PrinterTransportException(
         'Bluetooth connection failed: $e',
       );
+    } finally {
+      await FlutterBluePlus.stopScan();
     }
   }
 
@@ -97,18 +92,15 @@ class WebBluetoothTransport {
       final end = math.min(offset + chunkSize, data.length);
       final chunk = data.sublist(offset, end);
 
-      final jsBuffer = chunk.buffer.toJS;
-
       try {
-        await characteristic.writeValueWithResponse(jsBuffer).toDart;
-      } catch (_) {
-        try {
-          await characteristic.writeValueWithoutResponse(jsBuffer).toDart;
-        } catch (e) {
-          throw PrinterTransportException(
-            'Bluetooth write failed at offset $offset: $e',
-          );
-        }
+        await characteristic.write(
+          chunk,
+          withoutResponse: false,
+        );
+      } catch (e) {
+        throw PrinterTransportException(
+          'Bluetooth write failed at offset $offset: $e',
+        );
       }
 
       offset = end;
@@ -123,6 +115,8 @@ class WebBluetoothTransport {
 
   void disconnect() {
     _cachedCharacteristic = null;
+    _device?.disconnect();
+    _device = null;
   }
 }
 
