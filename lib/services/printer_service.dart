@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:permission_handler/permission_handler.dart';
+import 'bluetooth_manager.dart';
 import 'image_rasterizer.dart';
 import 'web_bluetooth_transport.dart';
 
@@ -20,7 +21,16 @@ class PrinterService {
   }) async {
     try {
       await ensureBluetoothPermissions();
-      await _transport.connect(
+
+      final saved = await BluetoothManager.getSavedDevice();
+      if (saved == null) {
+        throw const PrinterException(
+          'No printer selected. Please select a Bluetooth printer first.',
+        );
+      }
+
+      await _transport.connectToDeviceId(
+        deviceId: saved.id,
         serviceUuid: serviceUuid,
         characteristicUuid: characteristicUuid,
       );
