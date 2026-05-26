@@ -79,6 +79,57 @@ class WebBluetoothTransport {
     }
   }
 
+  
+  
+  Future<void> connectToDeviceId({
+    required String deviceId,
+    required String serviceUuid,
+    required String characteristicUuid,
+  }) async {
+    if (_cachedCharacteristic != null) return;
+
+    final serviceGuid = Guid(serviceUuid);
+    final characteristicGuid = Guid(characteristicUuid);
+
+    try {
+      final device = BluetoothDevice(remoteId: DeviceIdentifier(deviceId));
+      _device = device;
+
+      await device.connect(
+        timeout: const Duration(seconds: 10),
+        autoConnect: false,
+      );
+
+      final services = await device.discoverServices();
+      final service = services.firstWhere(
+        (s) => s.uuid == serviceGuid,
+        orElse: () {
+          throw const PrinterTransportException(
+            'Bluetooth service not found on saved device.',
+          );
+        },
+      );
+
+      final characteristic = service.characteristics.firstWhere(
+        (c) => c.uuid == characteristicGuid,
+        orElse: () {
+          throw const PrinterTransportException(
+            'Bluetooth characteristic not found on saved device.',
+          );
+        },
+      );
+
+      _cachedCharacteristic = characteristic;
+    } catch (e) {
+      _cachedCharacteristic = null;
+      await _device?.disconnect();
+      _device = null;
+      throw PrinterTransportException(
+        'Bluetooth connection to saved device failed: $e',
+      );
+    }
+  }
+
   Future<void> sendData(Uint8List data) async {
     final characteristic = _cachedCharacteristic;
     if (characteristic == null) {
