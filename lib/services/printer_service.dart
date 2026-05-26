@@ -1,6 +1,10 @@
 import 'dart:typed_data';
+import 'dart:js_interop';
 
-import 'image_rasterizer.dart';
+import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
+import 'package:image/image.dart' as img;
+import 'package:web/web.dart' as web;
+
 import 'web_bluetooth_transport.dart';
 
 class PrinterService {
@@ -25,23 +29,69 @@ class PrinterService {
         characteristicUuid: characteristicUuid,
       );
 
-      await _transport.sendData(ImageRasterizer.buildInitCommand());
-      await Future<void>.delayed(const Duration(milliseconds: 150));
+      final escBytes = await _buildEscPosBytes(imageBytes, paperWidthPx);
 
-      final rasterPayload = await ImageRasterizer.processAndBuildRaster(
-        imageBytes,
-        paperWidthPx: paperWidthPx,
-      );
-
-      await _transport.sendData(rasterPayload);
-
-      await Future<void>.delayed(const Duration(milliseconds: 600));
-      await _transport.sendData(ImageRasterizer.buildFeedCutCommand());
+      await _transport.sendData(Uint8List.fromList(escBytes));
     } on PrinterTransportException catch (e) {
       throw PrinterException(e.message);
-    } on ImageRasterizerException catch (e) {
-      throw PrinterException(e.message);
+    } catch (e) {
+      throw PrinterException(e.toString());
     }
+  }
+
+  static Future<List<int>> _buildEscPosBytes(
+    Uint8List pngBytes,
+    int paperWidthPx,
+  ) async {
+    final decoded = await _decodePngViaCanvas(pngBytes, paperWidthPx);
+
+    final profile = await CapabilityProfile.load();
+    final generator = Generator(PaperSize.mm80, profile);
+
+    final List<int> bytes = [];
+    bytes.addAll(generator.reset());
+    bytes.addAll(generator.imageRaster(decoded, align: PosAlign.center));
+    bytes.addAll(generator.feed(4));
+    bytes.addAll(generator.cut());
+    return bytes;
+  }
+
+  static Future<img.Image> _decodePngViaCanvas(
+    Uint8List pngBytes,
+    int targetWidth,
+  ) async {
+    final blob = web.Blob(
+      [pngBytes.toJS].toJS,
+      web.BlobPropertyBag(type: 'image/png'),
+    );
+    final url = web.URL.createObjectURL(blob);
+    final htmlImg = web.HTMLImageElement();
+    htmlImg.src = url;
+    await htmlImg.onLoad.first;
+    web.URL.revokeObjectURL(url);
+
+    final srcW = htmlImg.naturalWidth;
+    final srcH = htmlImg.naturalHeight;
+    final targetH = (srcH * targetWidth / srcW).round();
+
+    final canvas =
+        web.document.createElement('canvas') as web.HTMLCanvasElement;
+    canvas.width = targetWidth;
+    canvas.height = targetH;
+    final ctx = canvas.context2D;
+    ctx.drawImage(htmlImg, 0, 0, targetWidth, targetH);
+
+    final imageData = ctx.getImageData(0, 0, targetWidth, targetH);
+    final rgba = imageData.data.toDart;
+
+    final image = img.Image.fromBytes(
+      width: targetWidth,
+      height: targetH,
+      bytes: Uint8List.fromList(rgba).buffer,
+      numChannels: 4,
+    );
+
+    return image;
   }
 
   static void disconnect() {
