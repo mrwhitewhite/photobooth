@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:permission_handler/permission_handler.dart';
 import 'image_rasterizer.dart';
 import 'web_bluetooth_transport.dart';
 
@@ -18,6 +19,7 @@ class PrinterService {
     int paperWidthPx = 576,
   }) async {
     try {
+      await ensureBluetoothPermissions();
       await _transport.connect(
         serviceUuid: serviceUuid,
         characteristicUuid: characteristicUuid,
@@ -45,6 +47,21 @@ class PrinterService {
 
   static void disconnect() {
     _transport.disconnect();
+  }
+
+  static Future<void> ensureBluetoothPermissions() async {
+    final permissions = <Permission>[
+      Permission.bluetoothScan,
+      Permission.bluetoothConnect,
+      Permission.locationWhenInUse,
+    ];
+    final statuses = await permissions.request();
+    final denied = statuses.values.where((status) => !status.isGranted);
+    if (denied.isNotEmpty) {
+      throw const PrinterException(
+        'Bluetooth permissions are required to print.',
+      );
+    }
   }
 }
 

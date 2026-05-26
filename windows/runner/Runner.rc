@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "snapbooth" "\0"
+            VALUE "FileDescription", "myReceipt" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "snapbooth" "\0"
+            VALUE "InternalName", "myReceipt" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "snapbooth.exe" "\0"
-            VALUE "ProductName", "snapbooth" "\0"
+            VALUE "OriginalFilename", "myReceipt.exe" "\0"
+            VALUE "ProductName", "myReceipt" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
