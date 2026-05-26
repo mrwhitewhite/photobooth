@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BluetoothDeviceInfo {
@@ -59,8 +59,6 @@ class _BluetoothPickerDialog extends StatefulWidget {
 
 class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
   final Map<String, BluetoothDeviceInfo> _found = {};
-  final Set<String> _bondedIds = {};
-  StreamSubscription<List<ScanResult>>? _sub;
   bool _scanning = false;
   String? _error;
 
@@ -68,13 +66,6 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
   void initState() {
     super.initState();
     _startScan();
-  }
-
-  @override
-  void dispose() {
-    _sub?.cancel();
-    FlutterBluePlus.stopScan();
-    super.dispose();
   }
 
   Future<void> _startScan() async {
@@ -85,15 +76,13 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
     });
 
     try {
-      final bonded = await FlutterBluePlus.bondedDevices;
+      final bonded = await FlutterBluetoothSerial.instance.getBondedDevices();
       if (mounted) {
         setState(() {
           for (final d in bonded) {
-            final name =
-                d.platformName.isNotEmpty ? d.platformName : d.remoteId.str;
-            _bondedIds.add(d.remoteId.str);
-            _found[d.remoteId.str] = BluetoothDeviceInfo(
-              id: d.remoteId.str,
+            final name = (d.name?.isNotEmpty == true) ? d.name! : d.address;
+            _found[d.address] = BluetoothDeviceInfo(
+              id: d.address,
               name: name,
               rssi: -60,
             );
@@ -101,29 +90,19 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
         });
       }
 
-      _sub = FlutterBluePlus.scanResults.listen((results) {
-        if (!mounted) return;
+      await for (final result
+          in FlutterBluetoothSerial.instance.startDiscovery()) {
+        if (!mounted) break;
+        final d = result.device;
+        final name = (d.name?.isNotEmpty == true) ? d.name! : d.address;
         setState(() {
-          for (final r in results) {
-            final name = r.device.platformName.isNotEmpty
-                ? r.device.platformName
-                : r.advertisementData.advName.isNotEmpty
-                    ? r.advertisementData.advName
-                    : r.device.remoteId.str;
-            _found[r.device.remoteId.str] = BluetoothDeviceInfo(
-              id: r.device.remoteId.str,
-              name: name,
-              rssi: r.rssi,
-            );
-          }
+          _found[d.address] = BluetoothDeviceInfo(
+            id: d.address,
+            name: name,
+            rssi: result.rssi,
+          );
         });
-      });
-
-      await FlutterBluePlus.startScan(
-        timeout: const Duration(seconds: 12),
-        continuousUpdates: true,
-        removeIfGone: null,
-      );
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _error = e.toString());
@@ -134,7 +113,7 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
   }
 
   void _select(BluetoothDeviceInfo info) {
-    FlutterBluePlus.stopScan();
+    FlutterBluetoothSerial.instance.cancelDiscovery();
     Navigator.of(context).pop(info);
   }
 
@@ -169,7 +148,6 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
     if (confirmed == true && mounted) {
       setState(() {
         _found.remove(d.id);
-        _bondedIds.remove(d.id);
       });
     }
   }
@@ -257,7 +235,6 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
                                 d.name.toLowerCase().contains('btp') ||
                                 d.name.toLowerCase().contains('pos') ||
                                 d.name.toLowerCase().contains('printer');
-                        final isBonded = _bondedIds.contains(d.id);
                         return ListTile(
                           dense: true,
                           contentPadding:
@@ -282,9 +259,7 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
                             ),
                           ),
                           subtitle: Text(
-                            isBonded
-                                ? '${d.id}  •  Paired (Classic BT)'
-                                : '${d.id}  •  ${d.rssi} dBm',
+                            '${d.id}  •  ${d.rssi > -70 ? '${d.rssi} dBm' : 'Paired'}',
                             style: const TextStyle(
                                 color: Color(0xFF888888), fontSize: 11),
                           ),
@@ -292,13 +267,10 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
                               ? const Text('Recommended',
                                   style: TextStyle(
                                       color: Color(0xFFE8C8A0), fontSize: 10))
-                              : isBonded
-                                  ? const Icon(Icons.bluetooth,
-                                      color: Color(0xFF5599FF), size: 14)
-                                  : null,
+                              : const Icon(Icons.bluetooth,
+                                  color: Color(0xFF5599FF), size: 14),
                           onTap: () => _select(d),
-                          onLongPress:
-                              isBonded ? () => _confirmRemove(d) : null,
+                          onLongPress: () => _confirmRemove(d),
                         );
                       },
                     ),

@@ -6,9 +6,8 @@ import 'image_rasterizer.dart';
 import 'web_bluetooth_transport.dart';
 
 class PrinterService {
-  static String serviceUuid = '000018f0-0000-1000-8000-00805f9b34fb';
-
-  static String characteristicUuid = '00002af1-0000-1000-8000-00805f9b34fb';
+  static const String serviceUuid = '';
+  static const String characteristicUuid = '';
 
   static final WebBluetoothTransport _transport = WebBluetoothTransport(
     chunkSize: 512,
@@ -31,8 +30,6 @@ class PrinterService {
 
       await _transport.connectToDeviceId(
         deviceId: saved.id,
-        serviceUuid: serviceUuid,
-        characteristicUuid: characteristicUuid,
       );
 
       await _transport.sendData(ImageRasterizer.buildInitCommand());
@@ -61,6 +58,7 @@ class PrinterService {
 
   static Future<void> ensureBluetoothPermissions() async {
     final permissions = <Permission>[
+      Permission.bluetooth,
       Permission.bluetoothScan,
       Permission.bluetoothConnect,
       Permission.locationWhenInUse,
