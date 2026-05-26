@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BluetoothDeviceInfo {
@@ -12,7 +12,7 @@ class BluetoothDeviceInfo {
   const BluetoothDeviceInfo({
     required this.id,
     required this.name,
-    required this.rssi,
+    this.rssi = -60,
   });
 }
 
@@ -58,48 +58,43 @@ class _BluetoothPickerDialog extends StatefulWidget {
 }
 
 class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
-  final Map<String, BluetoothDeviceInfo> _found = {};
-  bool _scanning = false;
+  final List<BluetoothDeviceInfo> _devices = [];
+  bool _loading = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _startScan();
+    _loadPairedDevices();
   }
 
-  Future<void> _startScan() async {
+  Future<void> _loadPairedDevices() async {
     setState(() {
-      _scanning = true;
+      _loading = true;
       _error = null;
-      _found.clear();
+      _devices.clear();
     });
 
     try {
-      final bonded = await FlutterBluetoothSerial.instance.getBondedDevices();
-      if (mounted) {
-        setState(() {
-          for (final d in bonded) {
-            final name = (d.name?.isNotEmpty == true) ? d.name! : d.address;
-            _found[d.address] = BluetoothDeviceInfo(
-              id: d.address,
-              name: name,
-              rssi: -60,
-            );
-          }
-        });
+      final bool btEnabled = await PrintBluetoothThermal.bluetoothEnabled;
+      if (!btEnabled) {
+        setState(() =>
+            _error = 'Bluetooth is disabled. Please enable it and try again.');
+        return;
       }
 
-      await for (final result
-          in FlutterBluetoothSerial.instance.startDiscovery()) {
-        if (!mounted) break;
-        final d = result.device;
-        final name = (d.name?.isNotEmpty == true) ? d.name! : d.address;
+      final List<BluetoothInfo> paired =
+          await PrintBluetoothThermal.pairedBluetooths;
+
+      if (mounted) {
         setState(() {
-          _found[d.address] = BluetoothDeviceInfo(
-            id: d.address,
-            name: name,
-            rssi: result.rssi,
+          _devices.addAll(
+            paired.map(
+              (d) => BluetoothDeviceInfo(
+                id: d.macAdress,
+                name: d.name.isNotEmpty ? d.name : d.macAdress,
+              ),
+            ),
           );
         });
       }
@@ -108,54 +103,22 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
         setState(() => _error = e.toString());
       }
     } finally {
-      if (mounted) setState(() => _scanning = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   void _select(BluetoothDeviceInfo info) {
-    FlutterBluetoothSerial.instance.cancelDiscovery();
     Navigator.of(context).pop(info);
-  }
-
-  Future<void> _confirmRemove(BluetoothDeviceInfo d) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF242424),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text(
-          'Remove device?',
-          style: TextStyle(color: Color(0xFFF0EDE8), fontSize: 15),
-        ),
-        content: Text(
-          'Remove "${d.name}" from the list?\n\nThis only hides it here — to fully unpair, go to your phone\'s Bluetooth settings.',
-          style: const TextStyle(color: Color(0xFF888888), fontSize: 13),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel',
-                style: TextStyle(color: Color(0xFF888888))),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child:
-                const Text('Remove', style: TextStyle(color: Colors.redAccent)),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true && mounted) {
-      setState(() {
-        _found.remove(d.id);
-      });
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final devices = _found.values.toList()
-      ..sort((a, b) => b.rssi.compareTo(a.rssi));
+    final devices = List<BluetoothDeviceInfo>.from(_devices)
+      ..sort((a, b) {
+        final aScore = _printerScore(a.name);
+        final bScore = _printerScore(b.name);
+        return bScore.compareTo(aScore);
+      });
 
     return Dialog(
       backgroundColor: const Color(0xFF1A1A1A),
@@ -168,8 +131,7 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
           children: [
             Row(
               children: [
-                const Icon(Icons.bluetooth_searching,
-                    color: Color(0xFFE8C8A0), size: 22),
+                const Icon(Icons.bluetooth, color: Color(0xFFE8C8A0), size: 22),
                 const SizedBox(width: 10),
                 const Expanded(
                   child: Text(
@@ -181,7 +143,7 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
                     ),
                   ),
                 ),
-                if (_scanning)
+                if (_loading)
                   const SizedBox(
                     width: 18,
                     height: 18,
@@ -193,11 +155,9 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
               ],
             ),
             const SizedBox(height: 6),
-            Text(
-              _scanning
-                  ? 'Scanning… paired Classic BT printers shown immediately'
-                  : 'Scan complete — paired Classic BT printers listed above',
-              style: const TextStyle(color: Color(0xFF888888), fontSize: 12),
+            const Text(
+              'Showing paired Classic Bluetooth devices.\nPair your XP-N160II in phone Settings → Bluetooth first.',
+              style: TextStyle(color: Color(0xFF888888), fontSize: 12),
             ),
             const SizedBox(height: 14),
             if (_error != null)
@@ -215,9 +175,10 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 24),
                         child: Text(
-                          _scanning
-                              ? 'Looking for devices…'
-                              : 'No devices found.',
+                          _loading
+                              ? 'Loading paired devices…'
+                              : 'No paired devices found.\nPair the printer in Bluetooth Settings first.',
+                          textAlign: TextAlign.center,
                           style: const TextStyle(color: Color(0xFF888888)),
                         ),
                       ),
@@ -229,12 +190,7 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
                           const Divider(color: Color(0xFF333333), height: 1),
                       itemBuilder: (_, i) {
                         final d = devices[i];
-                        final isXprinter =
-                            d.name.toLowerCase().contains('xprinter') ||
-                                d.name.toLowerCase().contains('xp-n') ||
-                                d.name.toLowerCase().contains('btp') ||
-                                d.name.toLowerCase().contains('pos') ||
-                                d.name.toLowerCase().contains('printer');
+                        final isXprinter = _printerScore(d.name) > 0;
                         return ListTile(
                           dense: true,
                           contentPadding:
@@ -259,7 +215,7 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
                             ),
                           ),
                           subtitle: Text(
-                            '${d.id}  •  ${d.rssi > -70 ? '${d.rssi} dBm' : 'Paired'}',
+                            '${d.id}  •  Paired (Classic BT)',
                             style: const TextStyle(
                                 color: Color(0xFF888888), fontSize: 11),
                           ),
@@ -270,7 +226,6 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
                               : const Icon(Icons.bluetooth,
                                   color: Color(0xFF5599FF), size: 14),
                           onTap: () => _select(d),
-                          onLongPress: () => _confirmRemove(d),
                         );
                       },
                     ),
@@ -280,10 +235,10 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 TextButton.icon(
-                  onPressed: _scanning ? null : _startScan,
+                  onPressed: _loading ? null : _loadPairedDevices,
                   icon: const Icon(Icons.refresh,
                       size: 16, color: Color(0xFFE8C8A0)),
-                  label: const Text('Rescan',
+                  label: const Text('Refresh',
                       style: TextStyle(color: Color(0xFFE8C8A0))),
                 ),
                 TextButton(
@@ -297,5 +252,13 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
         ),
       ),
     );
+  }
+
+  int _printerScore(String name) {
+    final n = name.toLowerCase();
+    if (n.contains('xprinter') || n.contains('xp-n')) return 3;
+    if (n.contains('btp') || n.contains('pos')) return 2;
+    if (n.contains('printer') || n.contains('print')) return 1;
+    return 0;
   }
 }

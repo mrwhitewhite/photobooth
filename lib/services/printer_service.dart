@@ -1,15 +1,13 @@
 import 'dart:typed_data';
 
 import 'package:permission_handler/permission_handler.dart';
+
 import 'bluetooth_manager.dart';
+import 'classic_bt_transport.dart';
 import 'image_rasterizer.dart';
-import 'web_bluetooth_transport.dart';
 
 class PrinterService {
-  static const String serviceUuid = '';
-  static const String characteristicUuid = '';
-
-  static final WebBluetoothTransport _transport = WebBluetoothTransport(
+  static final ClassicBtTransport _transport = ClassicBtTransport(
     chunkSize: 512,
     interChunkDelayMs: 0,
   );
@@ -28,9 +26,7 @@ class PrinterService {
         );
       }
 
-      await _transport.connectToDeviceId(
-        deviceId: saved.id,
-      );
+      await _transport.connectToDeviceId(deviceId: saved.id);
 
       await _transport.sendData(ImageRasterizer.buildInitCommand());
 
@@ -52,9 +48,7 @@ class PrinterService {
     }
   }
 
-  static void disconnect() {
-    _transport.disconnect();
-  }
+  static Future<void> disconnect() => _transport.disconnect();
 
   static Future<void> ensureBluetoothPermissions() async {
     final permissions = <Permission>[
@@ -64,10 +58,12 @@ class PrinterService {
       Permission.locationWhenInUse,
     ];
     final statuses = await permissions.request();
-    final denied = statuses.values.where((status) => !status.isGranted);
+    final denied =
+        statuses.entries.where((e) => !e.value.isGranted).map((e) => e.key);
     if (denied.isNotEmpty) {
-      throw const PrinterException(
-        'Bluetooth permissions are required to print.',
+      throw PrinterException(
+        'Bluetooth permissions required to print: '
+        '${denied.map((p) => p.toString()).join(', ')}',
       );
     }
   }
