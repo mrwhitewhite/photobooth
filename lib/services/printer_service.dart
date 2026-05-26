@@ -2,12 +2,14 @@ import 'dart:typed_data';
 
 import 'package:permission_handler/permission_handler.dart';
 import 'image_rasterizer.dart';
+import 'printer_debug.dart';
 import 'web_bluetooth_transport.dart';
 
 class PrinterService {
-  static String serviceUuid = '000018f0-0000-1000-8000-00805f9b34fb';
-
-  static String characteristicUuid = '00002af1-0000-1000-8000-00805f9b34fb';
+  // UUIDs confirmed for Xprinter XP-N160II (18F0 / 2AF1 pair).
+  static const String serviceUuid = '000018f0-0000-1000-8000-00805f9b34fb';
+  static const String characteristicUuid =
+      '00002af1-0000-1000-8000-00805f9b34fb';
 
   static final WebBluetoothTransport _transport = WebBluetoothTransport(
     chunkSize: 512,
@@ -19,25 +21,34 @@ class PrinterService {
     int paperWidthPx = 576,
   }) async {
     try {
+      printerLog('Requesting Bluetooth permissions...');
       await ensureBluetoothPermissions();
+
+      printerLog('Connecting to printer...');
       await _transport.connect(
         serviceUuid: serviceUuid,
         characteristicUuid: characteristicUuid,
       );
 
+      printerLog('Sending init command...');
       await _transport.sendData(ImageRasterizer.buildInitCommand());
-
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
+      printerLog('Rasterizing image (paperWidthPx=$paperWidthPx)...');
       final rasterPayload = await ImageRasterizer.processAndBuildRaster(
         imageBytes,
         paperWidthPx: paperWidthPx,
       );
 
+      printerLog('Sending raster payload (${rasterPayload.length} bytes)...');
       await _transport.sendData(rasterPayload);
 
       await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      printerLog('Sending feed+cut command...');
       await _transport.sendData(ImageRasterizer.buildFeedCutCommand());
+
+      printerLog('Print complete.');
     } on PrinterTransportException catch (e) {
       throw PrinterException(e.message);
     } on ImageRasterizerException catch (e) {
@@ -56,12 +67,16 @@ class PrinterService {
       Permission.locationWhenInUse,
     ];
     final statuses = await permissions.request();
-    final denied = statuses.values.where((status) => !status.isGranted);
+    final denied = statuses.entries
+        .where((e) => !e.value.isGranted)
+        .map((e) => e.key.toString());
     if (denied.isNotEmpty) {
-      throw const PrinterException(
-        'Bluetooth permissions are required to print.',
+      throw PrinterException(
+        'Bluetooth permissions denied: ${denied.join(', ')}. '
+        'Please grant them in Settings.',
       );
     }
+    printerLog('All Bluetooth permissions granted.');
   }
 }
 
