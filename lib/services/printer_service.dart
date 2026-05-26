@@ -9,14 +9,7 @@ class PrinterService {
   static String characteristicUuid = '00002af1-0000-1000-8000-00805f9b34fb';
 
   static final WebBluetoothTransport _transport = WebBluetoothTransport(
-    // 504 = 72 bytes/row × 7 rows for 576 px (80 mm @ 203 dpi) paper.
-    // Aligning chunks to row boundaries prevents the print head from
-    // pausing mid-row between Bluetooth packets, which is the primary cause
-    // of the "1-2-1-2" banding artifact.
     chunkSize: 512,
-    // 0 ms: write-with-response already provides backpressure;
-    // an extra artificial delay only gives the print head more time
-    // to cool unevenly between chunks.
     interChunkDelayMs: 0,
   );
 
