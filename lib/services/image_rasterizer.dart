@@ -83,7 +83,8 @@ class ImageRasterizer {
       interpolation: img.Interpolation.cubic,
     );
 
-    final rgbaBytes = resized.getBytes(format: img.Format.rgba);
+    final normalized = img.Image.from(resized, numChannels: 4);
+    final rgbaBytes = normalized.getBytes();
     return _RgbaImage(
       pixels: Uint8ClampedList.fromList(rgbaBytes),
       width: targetW,

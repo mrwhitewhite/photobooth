@@ -184,7 +184,8 @@ class ImageProcessor {
     int height,
     int expectedCount,
   ) {
-    final pixels = template.getBytes(format: img.Format.rgba);
+    final normalized = img.Image.from(template, numChannels: 4);
+    final pixels = normalized.getBytes();
 
     final List<List<_Segment>> rowSegments = List.generate(height, (_) => []);
     for (var y = 0; y < height; y++) {
