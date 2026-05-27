@@ -34,7 +34,7 @@ class PrinterService {
       }
 
       // 2. Define your chunk height (e.g., 200–300 pixels per chunk)
-      int chunkHeight = 250;
+      int chunkHeight = 1500;
       int totalHeight = originalImage.height;
 
       // 3. Loop through and print the image section by section
