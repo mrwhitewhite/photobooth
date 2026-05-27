@@ -31,21 +31,23 @@ class MyReceiptApp extends StatelessWidget {
   }
 
   ThemeData _buildTheme() {
-    const bg = Color(0xFF0D0D0D);
-    const surface = Color(0xFF1A1A1A);
-    const accent = Color(0xFFE8C8A0);
-    const text = Color(0xFFF0EDE8);
+    const bg = Color(0xFFFFFFEA);
+    const surface = Color(0xFFF7F3D6);
+    const accent = Color(0xFFD9B87C);
+    const text = Color(0xFF4A4638);
 
     return ThemeData(
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
       scaffoldBackgroundColor: bg,
       primaryColor: accent,
-      colorScheme: const ColorScheme.dark(
+      colorScheme: const ColorScheme.light(
         primary: accent,
         surface: surface,
+        // background: bg,
         onSurface: text,
+        // onBackground: text,
       ),
-      textTheme: ThemeData.dark().textTheme.apply(
+      textTheme: ThemeData.light().textTheme.apply(
             fontFamily: 'PoppinsMedium',
             bodyColor: text,
             displayColor: text,

@@ -84,7 +84,7 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
               ),
             )
           else
-            const ColoredBox(color: Colors.black),
+            const ColoredBox(color: Color(0xFFFFFFEA)),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: RadialGradient(
@@ -92,7 +92,7 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
                 radius: 1.4,
                 colors: [
                   Colors.transparent,
-                  Colors.black.withValues(alpha: 0.55),
+                  const Color(0xFFFFFFEA).withValues(alpha: 0.75),
                 ],
               ),
             ),
@@ -109,7 +109,7 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.6),
+                        color: const Color(0xFFD9B87C).withValues(alpha: 0.55),
                         width: 1.5,
                       ),
                     ),
@@ -120,14 +120,15 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.9),
+                            color:
+                                const Color(0xFFD9B87C).withValues(alpha: 0.85),
                             width: 2,
                           ),
-                          color: Colors.white.withValues(alpha: 0.08),
+                          color: const Color(0xFFFFFFEA).withValues(alpha: 0.6),
                         ),
                         child: const Icon(
                           Icons.touch_app_rounded,
-                          color: Colors.white,
+                          color: Color(0xFF4A4638),
                           size: 42,
                         ),
                       ),
@@ -141,7 +142,7 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
                     fontFamily: 'PoppinsMedium',
                     fontSize: 13,
                     letterSpacing: 6,
-                    color: Colors.white.withValues(alpha: 0.85),
+                    color: const Color(0xFF4A4638).withValues(alpha: 0.85),
                     fontWeight: FontWeight.w300,
                   ),
                 ),

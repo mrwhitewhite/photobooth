@@ -9,12 +9,12 @@ import '../services/printer_service.dart';
 import '../services/email_service.dart';
 
 class _C {
-  static const bg = Color(0xFF0D0D0D);
-  static const surface = Color(0xFF161616);
-  static const border = Color(0xFF2A2A2A);
-  static const accent = Color(0xFFE8C8A0);
-  static const text = Color(0xFFF0EDE8);
-  static const muted = Color(0xFF888480);
+  static const bg = Color(0xFFFFFFEA);
+  static const surface = Color(0xFFF5F1D2);
+  static const border = Color(0xFFE5DFC1);
+  static const accent = Color(0xFFD9B87C);
+  static const text = Color(0xFF4A4638);
+  static const muted = Color(0xFF7B7561);
   static const danger = Color(0xFFFF6B6B);
 }
 
@@ -86,10 +86,10 @@ class _PreviewScreenState extends State<PreviewScreen>
       context: context,
       barrierDismissible: true,
       builder: (ctx) => Dialog(
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: _C.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
-          side: const BorderSide(color: Color(0xFF2A2A2A)),
+          side: const BorderSide(color: _C.border),
         ),
         child: Padding(
           padding: const EdgeInsets.all(28),
@@ -144,14 +144,14 @@ class _PreviewScreenState extends State<PreviewScreen>
                     prefixIcon: const Icon(Icons.alternate_email_rounded,
                         color: _C.muted, size: 18),
                     filled: true,
-                    fillColor: const Color(0xFF0D0D0D),
+                    fillColor: _C.surface,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(4),
-                      borderSide: const BorderSide(color: Color(0xFF2A2A2A)),
+                      borderSide: const BorderSide(color: _C.border),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(4),
-                      borderSide: const BorderSide(color: Color(0xFF2A2A2A)),
+                      borderSide: const BorderSide(color: _C.border),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(4),
@@ -189,7 +189,7 @@ class _PreviewScreenState extends State<PreviewScreen>
                         child: Container(
                           height: 44,
                           decoration: BoxDecoration(
-                            border: Border.all(color: const Color(0xFF2A2A2A)),
+                            border: Border.all(color: _C.border),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Center(
@@ -227,7 +227,7 @@ class _PreviewScreenState extends State<PreviewScreen>
                                 fontFamily: 'PoppinsMedium',
                                 fontSize: 11,
                                 letterSpacing: 2,
-                                color: Color(0xFF1A1A1A),
+                                color: _C.text,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -462,7 +462,7 @@ class _PreviewScreenState extends State<PreviewScreen>
             decoration: BoxDecoration(
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.6),
+                  color: _C.accent.withValues(alpha: 0.25),
                   blurRadius: 60,
                   offset: const Offset(0, 20),
                 ),
@@ -650,7 +650,7 @@ class _ActionButtonState extends State<_ActionButton>
 
   Color get _fg {
     if (!widget.enabled) return _C.muted;
-    if (widget.filled) return const Color(0xFF1A1A1A);
+    if (widget.filled) return _C.text;
     if (widget.danger) return _C.danger;
     return _C.text;
   }
