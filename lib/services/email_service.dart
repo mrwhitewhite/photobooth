@@ -7,7 +7,8 @@ class EmailService {
   static const String _smtpHost = 'smtp.gmail.com';
   static const int _smtpPort = 587;
   static const String _senderEmail = 'wuongzize5@gmail.com'; // <-- change this
-  static const String _senderPassword = 'rfxbmzcoshvpylwo';  // <-- change this (use Gmail App Password)
+  static const String _senderPassword =
+      'rfxbmzcoshvpylwo'; // <-- change this (use Gmail App Password)
   static const String _senderName = 'MyReceipt Photobooth';
   // ──────────────────────────────────────────────────────────────────────────
 
@@ -29,7 +30,7 @@ class EmailService {
     final fileName = 'photobooth_$ts.png';
 
     final message = Message()
-      ..from = Address(_senderEmail, _senderName)
+      ..from = const Address(_senderEmail, _senderName)
       ..recipients.add(recipientEmail)
       ..subject = '📸 Your Photobooth Photo!'
       ..html = '''
