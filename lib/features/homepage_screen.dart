@@ -121,12 +121,6 @@ class _HomepageScreenState extends State<HomepageScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Image.asset(
-                  'assets/logo.png',
-                  height: 80,
-                  fit: BoxFit.contain,
-                ),
-                const SizedBox(height: 8),
                 _SavedPrinterBadge(onChangePrinter: _showChangePrinterDialog),
                 const SizedBox(height: 40),
                 _StartButton(onTap: _handleStart),

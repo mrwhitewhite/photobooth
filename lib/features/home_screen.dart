@@ -90,12 +90,12 @@ class _HomeScreenState extends State<HomeScreen> {
 class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(48, 32, 48, 28),
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(48, 32, 48, 28),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          const Column(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
@@ -120,12 +120,6 @@ class _Header extends StatelessWidget {
                 ),
               ),
             ],
-          ),
-          const Spacer(),
-          Image.asset(
-            'assets/logo.png',
-            height: 40,
-            fit: BoxFit.contain,
           ),
         ],
       ),
