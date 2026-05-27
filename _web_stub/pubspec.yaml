@@ -1,0 +1,9 @@
+name: web
+version: 0.0.1
+description: Temporary local stub for package:web to allow Android builds.
+environment:
+  sdk: '>=3.10.0 <4.0.0'
+
+flutter:
+  plugin:
+    platforms: {}
