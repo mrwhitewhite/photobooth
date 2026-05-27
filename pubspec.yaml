@@ -46,8 +46,8 @@ flutter:
     - assets/layout/2x2.PNG
     - assets/layout/3x1.png
     - assets/layout/4x2.png
-    - assets/screen_saver/screen_saver_1.mp4
-    - assets/screen_saver/screen_saver_2.mp4
+    - assets/video/start_video.mp4
+    - assets/video/start_video.mp4
 
   fonts:
     - family: CHAOS16
