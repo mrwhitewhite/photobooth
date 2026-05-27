@@ -27,6 +27,7 @@ dependencies:
   share_plus: ^9.0.0
   shared_preferences: ^2.5.5
   flutter_xprinter_sdk: ^0.1.1
+  mailer: ^6.1.0
 
 dev_dependencies:
   flutter_test:
