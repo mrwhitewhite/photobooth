@@ -44,7 +44,7 @@ class PrinterService {
         widthDots: _paperWidthDots,
       );
 
-      await PosPrinter.feedLine(5);
+      await PosPrinter.feedLine(1);
       await PosPrinter.cutPaper();
     } on PrinterTransportException catch (e) {
       throw PrinterException(e.message);
