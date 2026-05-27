@@ -6,6 +6,7 @@ import '../models/photo_models.dart';
 import '../services/image_processor.dart';
 import '../services/photobooth_provider.dart';
 import '../services/printer_service.dart';
+import '../services/email_service.dart';
 
 class _C {
   static const bg = Color(0xFF0D0D0D);
@@ -28,6 +29,7 @@ class _PreviewScreenState extends State<PreviewScreen>
     with SingleTickerProviderStateMixin {
   bool _isCompositing = true;
   bool _isPrinting = false;
+  bool _isSendingEmail = false;
   Uint8List? _composite;
   String? _error;
 
@@ -74,10 +76,217 @@ class _PreviewScreenState extends State<PreviewScreen>
     }
   }
 
-  Future<void> _download() async {
-    if (_composite == null) return;
-    final ts = DateTime.now().millisecondsSinceEpoch;
-    await ImageProcessor.downloadFile(_composite!, 'myreceipt_$ts.png');
+  Future<void> _sendEmail() async {
+    if (_composite == null || _isSendingEmail) return;
+
+    final emailController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: const BorderSide(color: Color(0xFF2A2A2A)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.email_outlined, color: _C.accent, size: 20),
+                    SizedBox(width: 10),
+                    Text(
+                      'SEND PHOTO',
+                      style: TextStyle(
+                        fontFamily: 'PoppinsMedium',
+                        fontSize: 13,
+                        letterSpacing: 3,
+                        color: _C.text,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Enter the email address to receive your photo.',
+                  style: TextStyle(
+                    fontFamily: 'PoppinsMedium',
+                    fontSize: 11,
+                    color: _C.muted,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: emailController,
+                  autofocus: true,
+                  keyboardType: TextInputType.emailAddress,
+                  style: const TextStyle(
+                    fontFamily: 'PoppinsMedium',
+                    color: _C.text,
+                    fontSize: 13,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'example@email.com',
+                    hintStyle: const TextStyle(
+                      fontFamily: 'PoppinsMedium',
+                      color: _C.muted,
+                      fontSize: 12,
+                    ),
+                    prefixIcon: const Icon(Icons.alternate_email_rounded,
+                        color: _C.muted, size: 18),
+                    filled: true,
+                    fillColor: const Color(0xFF0D0D0D),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: const BorderSide(color: Color(0xFF2A2A2A)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: const BorderSide(color: Color(0xFF2A2A2A)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: const BorderSide(color: _C.accent),
+                    ),
+                    errorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: const BorderSide(color: _C.danger),
+                    ),
+                    focusedErrorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: const BorderSide(color: _C.danger),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 14),
+                  ),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return 'Please enter an email address';
+                    }
+                    final emailRegex =
+                        RegExp(r'^[\w.+-]+@[\w-]+\.[\w.]+$');
+                    if (!emailRegex.hasMatch(v.trim())) {
+                      return 'Please enter a valid email address';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(ctx).pop(false),
+                        child: Container(
+                          height: 44,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: const Color(0xFF2A2A2A)),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'CANCEL',
+                              style: TextStyle(
+                                fontFamily: 'PoppinsMedium',
+                                fontSize: 11,
+                                letterSpacing: 2,
+                                color: _C.muted,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          if (formKey.currentState!.validate()) {
+                            Navigator.of(ctx).pop(true);
+                          }
+                        },
+                        child: Container(
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: _C.accent,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'SEND',
+                              style: TextStyle(
+                                fontFamily: 'PoppinsMedium',
+                                fontSize: 11,
+                                letterSpacing: 2,
+                                color: Color(0xFF1A1A1A),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final email = emailController.text.trim();
+    setState(() => _isSendingEmail = true);
+    try {
+      await EmailService.sendPhoto(
+        recipientEmail: email,
+        imageBytes: _composite!,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Photo sent to $email ✓',
+              style: const TextStyle(
+                  fontFamily: 'PoppinsMedium', letterSpacing: 1),
+            ),
+            backgroundColor: const Color(0xFF1E3A1E),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to send email: ${e.toString()}',
+              style: const TextStyle(
+                  fontFamily: 'PoppinsMedium', letterSpacing: 0.5),
+            ),
+            backgroundColor: _C.danger,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 6),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSendingEmail = false);
+    }
   }
 
   Future<void> _print() async {
@@ -326,11 +535,13 @@ class _PreviewScreenState extends State<PreviewScreen>
         ),
         const SizedBox(height: 12),
         _ActionButton(
-          label: 'DOWNLOAD',
-          icon: Icons.download_rounded,
+          label: _isSendingEmail ? 'SENDING…' : 'SEND EMAIL',
+          icon: _isSendingEmail
+              ? Icons.hourglass_top_rounded
+              : Icons.email_outlined,
           filled: true,
-          enabled: _composite != null,
-          onTap: _download,
+          enabled: _composite != null && !_isSendingEmail,
+          onTap: _sendEmail,
         ),
         const SizedBox(height: 24),
         Container(height: 1, color: _C.border),
