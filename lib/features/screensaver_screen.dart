@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:provider/provider.dart';
@@ -18,6 +19,7 @@ class ScreensaverScreen extends StatefulWidget {
 
 class _ScreensaverScreenState extends State<ScreensaverScreen> {
   VideoPlayerController? _controller;
+  bool _isExiting = false;
 
   @override
   void initState() {
@@ -43,18 +45,29 @@ class _ScreensaverScreenState extends State<ScreensaverScreen> {
   }
 
   void _onTap() {
+    if (_isExiting) return;
+    _isExiting = true;
+
     final provider = context.read<PhotoboothProvider>();
     final controller = _controller;
 
-    if (controller != null && !controller.value.isPlaying) {
-      controller.play().then((_) {
-        if (mounted) setState(() {});
-      }).catchError((_) {});
-    }
+    // 立即切换页面，不等待任何操作
+    provider.goToHomepage();
 
-    Future.delayed(const Duration(milliseconds: 120), () {
-      if (mounted) provider.goToHomepage();
-    });
+    // 在完全独立的异步任务中释放资源，不阻塞主线程
+    _releaseVideoInBackground(controller);
+  }
+
+  void _releaseVideoInBackground(VideoPlayerController? controller) {
+    // 使用 Future 在后台释放，不等待
+    unawaited(
+      Future(() async {
+        try {
+          await controller?.pause();
+          await controller?.dispose();
+        } catch (_) {}
+      }),
+    );
   }
 
   @override
