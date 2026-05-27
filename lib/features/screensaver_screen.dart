@@ -16,21 +16,12 @@ class ScreensaverScreen extends StatefulWidget {
   State<ScreensaverScreen> createState() => _ScreensaverScreenState();
 }
 
-class _ScreensaverScreenState extends State<ScreensaverScreen>
-    with SingleTickerProviderStateMixin {
+class _ScreensaverScreenState extends State<ScreensaverScreen> {
   VideoPlayerController? _controller;
-  late AnimationController _pulseCtrl;
-  late Animation<double> _pulseAnim;
 
   @override
   void initState() {
     super.initState();
-    _pulseCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-    _pulseAnim = Tween<double>(begin: 0.6, end: 1.0)
-        .animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
 
     final path = _kVideos[Random().nextInt(_kVideos.length)];
     _controller = VideoPlayerController.asset(path)
@@ -47,7 +38,6 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
 
   @override
   void dispose() {
-    _pulseCtrl.dispose();
     _controller?.dispose();
     super.dispose();
   }
@@ -55,6 +45,7 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
   void _onTap() {
     final provider = context.read<PhotoboothProvider>();
     final controller = _controller;
+
     if (controller != null && !controller.value.isPlaying) {
       controller.play().then((_) {
         if (mounted) setState(() {});
@@ -95,58 +86,6 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
                   const Color(0xFFFFFFEA).withValues(alpha: 0.75),
                 ],
               ),
-            ),
-          ),
-          Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                FadeTransition(
-                  opacity: _pulseAnim,
-                  child: Container(
-                    width: 160,
-                    height: 160,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0xFFD9B87C).withValues(alpha: 0.55),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Center(
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color:
-                                const Color(0xFFD9B87C).withValues(alpha: 0.85),
-                            width: 2,
-                          ),
-                          color: const Color(0xFFFFFFEA).withValues(alpha: 0.6),
-                        ),
-                        child: const Icon(
-                          Icons.touch_app_rounded,
-                          color: Color(0xFF4A4638),
-                          size: 42,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  'TAP TO START',
-                  style: TextStyle(
-                    fontFamily: 'PoppinsMedium',
-                    fontSize: 13,
-                    letterSpacing: 6,
-                    color: const Color(0xFF4A4638).withValues(alpha: 0.85),
-                    fontWeight: FontWeight.w300,
-                  ),
-                ),
-              ],
             ),
           ),
         ],
