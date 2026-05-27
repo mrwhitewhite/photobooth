@@ -152,20 +152,6 @@ class ImageProcessorException implements Exception {
   String toString() => 'ImageProcessorException: $message';
 }
 
-class _FitResult {
-  final double offsetX;
-  final double offsetY;
-  final double width;
-  final double height;
-
-  const _FitResult({
-    required this.offsetX,
-    required this.offsetY,
-    required this.width,
-    required this.height,
-  });
-}
-
 Future<Uint8List> _compositeInIsolate(Map<String, dynamic> args) async {
   final photos = (args['photos'] as List)
       .cast<TransferableTypedData>()
