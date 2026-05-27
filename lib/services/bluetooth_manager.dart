@@ -116,7 +116,11 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
           });
         },
         onError: (Object e) {
-          if (mounted) setState(() => _error = e.toString());
+          if (mounted) {
+            setState(() {
+              _error = _parseBluetoothError(e.toString());
+            });
+          }
         },
         onDone: () {
           if (mounted) setState(() => _scanning = false);
@@ -125,11 +129,36 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.toString();
+          _error = _parseBluetoothError(e.toString());
           _scanning = false;
         });
       }
     }
+  }
+
+  // Helper method to parse ugly native codes into friendly text
+  String _parseBluetoothError(String rawError) {
+    final lowerError = rawError.toLowerCase();
+
+    // Check for common SDK error snippets indicating Bluetooth is turned off
+    if (lowerError.contains('disabled') ||
+        lowerError.contains('off') ||
+        lowerError.contains('not enabled') ||
+        lowerError.contains('status 11')) {
+      // 11 is a common native code for BT off
+      return 'Bluetooth is turned off. Please enable it in your settings.';
+    }
+
+    if (lowerError.contains('permission')) {
+      return 'Bluetooth permission denied. Please grant permission in settings.';
+    }
+
+    if (lowerError.contains('location')) {
+      return 'Location services are required to scan for printers.';
+    }
+
+    // Fallback to a cleaner fallback string, or the raw error if you still need it for debugging
+    return 'Could not start scan. Make sure Bluetooth is turned on.';
   }
 
   void _select(BluetoothDeviceInfo info) {
@@ -203,7 +232,7 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
                   ),
                 ),
                 if (_scanning)
-                      const SizedBox(
+                  const SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(
