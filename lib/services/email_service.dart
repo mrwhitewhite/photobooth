@@ -6,8 +6,8 @@ class EmailService {
   // ── Configure your SMTP credentials here ──────────────────────────────────
   static const String _smtpHost = 'smtp.gmail.com';
   static const int _smtpPort = 587;
-  static const String _senderEmail = 'your_email@gmail.com'; // <-- change this
-  static const String _senderPassword = 'your_app_password';  // <-- change this (use Gmail App Password)
+  static const String _senderEmail = 'wuongzize5@gmail.com'; // <-- change this
+  static const String _senderPassword = 'rfxbmzcoshvpylwo';  // <-- change this (use Gmail App Password)
   static const String _senderName = 'MyReceipt Photobooth';
   // ──────────────────────────────────────────────────────────────────────────
 
@@ -19,8 +19,8 @@ class EmailService {
     final smtpServer = SmtpServer(
       _smtpHost,
       port: _smtpPort,
-      username: 'wuongzize5@gmail.com',
-      password: 'rfxbmzcoshvpylwo',
+      username: _senderEmail,
+      password: _senderPassword,
       ssl: false,
       allowInsecure: false,
     );
