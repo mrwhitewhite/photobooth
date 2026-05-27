@@ -299,11 +299,7 @@ class CameraViewState extends State<CameraView>
         child: SizedBox(
           width: previewW,
           height: previewH,
-          child: Transform(
-            alignment: Alignment.center,
-            transform: Matrix4.diagonal3Values(-1.0, 1.0, 1.0),
-            child: CameraPreview(controller),
-          ),
+          child: CameraPreview(controller),
         ),
       ),
     );
