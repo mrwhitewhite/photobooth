@@ -70,44 +70,40 @@ class ImageProcessor {
       final double slotW = slot.w * canvasW;
       final double slotH = slot.h * canvasH;
 
-      final fit = _shouldCoverFit(layout)
-          ? _coverFit(
-              photoImg.width.toDouble(),
-              photoImg.height.toDouble(),
-              slotW,
-              slotH,
-            )
-          : _containFit(
-              photoImg.width.toDouble(),
-              photoImg.height.toDouble(),
-              slotW,
-              slotH,
-            );
+      final double srcAspect = photoImg.width / photoImg.height;
+      final double dstAspect = slotW / slotH;
+
+      int cropX = 0, cropY = 0;
+      int cropW = photoImg.width, cropH = photoImg.height;
+
+      if (srcAspect > dstAspect) {
+        cropH = photoImg.height;
+        cropW = (cropH * dstAspect).round().clamp(1, photoImg.width);
+        cropX = ((photoImg.width - cropW) / 2).round();
+      } else {
+        cropW = photoImg.width;
+        cropH = (cropW / dstAspect).round().clamp(1, photoImg.height);
+        cropY = ((photoImg.height - cropH) / 2).round();
+      }
+
+      final cropped = img.copyCrop(
+        photoImg,
+        x: cropX,
+        y: cropY,
+        width: cropW,
+        height: cropH,
+      );
 
       final resized = img.copyResize(
-        photoImg,
-        width: fit.width.round(),
-        height: fit.height.round(),
-        interpolation: img.Interpolation.linear,
-      );
-
-      final slotCanvas = img.Image(
+        cropped,
         width: slotW.round(),
         height: slotH.round(),
-        numChannels: 4,
-      );
-      img.fill(slotCanvas, color: img.ColorUint8.rgba(0, 0, 0, 0));
-      img.compositeImage(
-        slotCanvas,
-        resized,
-        dstX: fit.offsetX.round(),
-        dstY: fit.offsetY.round(),
-        blend: img.BlendMode.alpha,
+        interpolation: img.Interpolation.linear,
       );
 
       img.compositeImage(
         canvas,
-        slotCanvas,
+        resized,
         dstX: slotX.round(),
         dstY: slotY.round(),
         blend: img.BlendMode.alpha,
@@ -133,62 +129,6 @@ class ImageProcessor {
     return decoded;
   }
 
-  static _FitResult _containFit(
-    double srcW,
-    double srcH,
-    double dstW,
-    double dstH,
-  ) {
-    final srcAspect = srcW / srcH;
-    final dstAspect = dstW / dstH;
-    double width, height;
-    if (srcAspect > dstAspect) {
-      width = dstW;
-      height = dstW / srcAspect;
-    } else {
-      height = dstH;
-      width = dstH * srcAspect;
-    }
-    final offsetX = (dstW - width) / 2;
-    final offsetY = (dstH - height) / 2;
-    return _FitResult(
-      offsetX: offsetX,
-      offsetY: offsetY,
-      width: width,
-      height: height,
-    );
-  }
-
-  static _FitResult _coverFit(
-    double srcW,
-    double srcH,
-    double dstW,
-    double dstH,
-  ) {
-    final srcAspect = srcW / srcH;
-    final dstAspect = dstW / dstH;
-    double width, height;
-    if (srcAspect > dstAspect) {
-      height = dstH;
-      width = dstH * srcAspect;
-    } else {
-      width = dstW;
-      height = dstW / srcAspect;
-    }
-    final offsetX = (dstW - width) / 2;
-    final offsetY = (dstH - height) / 2;
-    return _FitResult(
-      offsetX: offsetX,
-      offsetY: offsetY,
-      width: width,
-      height: height,
-    );
-  }
-
-  static bool _shouldCoverFit(PhotoLayout layout) {
-    return layout == PhotoLayout.layout2x2 || layout == PhotoLayout.layout3x1;
-  }
-
   static Future<void> downloadFile(Uint8List bytes, String filename) async {
     final dir = await getTemporaryDirectory();
     final file = File('${dir.path}/$filename');
@@ -203,20 +143,6 @@ class ImageProcessorException implements Exception {
 
   @override
   String toString() => 'ImageProcessorException: $message';
-}
-
-class _FitResult {
-  final double offsetX;
-  final double offsetY;
-  final double width;
-  final double height;
-
-  const _FitResult({
-    required this.offsetX,
-    required this.offsetY,
-    required this.width,
-    required this.height,
-  });
 }
 
 Future<Uint8List> _compositeInIsolate(Map<String, dynamic> args) async {

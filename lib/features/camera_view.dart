@@ -1,6 +1,6 @@
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
 import 'package:image/image.dart' as img;
 import 'package:permission_handler/permission_handler.dart';
@@ -35,6 +35,10 @@ class CameraViewState extends State<CameraView>
   @override
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
 
     _countdownAnim = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 700));
@@ -204,7 +208,7 @@ class CameraViewState extends State<CameraView>
     final slots = layout.slots;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF080808),
+      backgroundColor: const Color(0xFFFFFFEA),
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -213,32 +217,32 @@ class CameraViewState extends State<CameraView>
               gradient: RadialGradient(
                 center: Alignment.center,
                 radius: 1.2,
-                colors: [Color(0xFF181818), Color(0xFF040404)],
+                colors: [Color(0xFFF5F1D2), Color(0xFFFFFFEA)],
               ),
             ),
           ),
           if (!_cameraReady)
             Container(
-              color: Colors.black.withValues(alpha: 0.85),
+              color: const Color(0xFFF7F3D6).withValues(alpha: 0.95),
               child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (_cameraError == null) ...[
                       const CircularProgressIndicator(
-                          color: Color(0xFFE8C8A0), strokeWidth: 1.5),
+                          color: Color(0xFFD9B87C), strokeWidth: 1.5),
                       const SizedBox(height: 20),
                       Text(
                         'STARTING CAMERA',
                         style: GoogleFonts.lato(
                           fontSize: 10,
                           letterSpacing: 4,
-                          color: Colors.white54,
+                          color: const Color(0xFF7B7561),
                         ),
                       ),
                     ] else ...[
                       const Icon(Icons.error_outline,
-                          color: Color(0xFFE8C8A0), size: 40),
+                          color: Color(0xFFD9B87C), size: 40),
                       const SizedBox(height: 16),
                       Text(
                         _cameraError!,
@@ -246,7 +250,7 @@ class CameraViewState extends State<CameraView>
                         style: GoogleFonts.lato(
                           fontSize: 12,
                           letterSpacing: 1,
-                          color: Colors.white70,
+                          color: const Color(0xFF4A4638),
                         ),
                       ),
                     ],
@@ -286,17 +290,16 @@ class CameraViewState extends State<CameraView>
     final size = controller.value.previewSize;
     if (size == null) return const SizedBox.shrink();
 
+    final double previewW = size.height;
+    final double previewH = size.width;
+
     return ClipRect(
       child: FittedBox(
         fit: BoxFit.cover,
         child: SizedBox(
-          width: size.width,
-          height: size.height,
-          child: Transform(
-            alignment: Alignment.center,
-            transform: Matrix4.diagonal3Values(-1.0, 1.0, 1.0),
-            child: CameraPreview(controller),
-          ),
+          width: previewW,
+          height: previewH,
+          child: CameraPreview(controller),
         ),
       ),
     );
@@ -314,7 +317,7 @@ class CameraViewState extends State<CameraView>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Colors.black.withValues(alpha: 0.65),
+              const Color(0xFFFFFFEA).withValues(alpha: 0.9),
               Colors.transparent,
             ],
           ),
@@ -326,16 +329,17 @@ class CameraViewState extends State<CameraView>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                border: Border.all(
+                    color: const Color(0xFF4A4638).withValues(alpha: 0.2)),
                 borderRadius: BorderRadius.circular(3),
-                color: Colors.black.withValues(alpha: 0.3),
+                color: const Color(0xFFFFFFEA).withValues(alpha: 0.75),
               ),
               child: Text(
                 'PHOTO  ${provider.capturedCount}  /  ${provider.totalRequired}',
                 style: GoogleFonts.lato(
                   fontSize: 11,
                   letterSpacing: 3,
-                  color: Colors.white,
+                  color: const Color(0xFF4A4638),
                   fontWeight: FontWeight.w300,
                 ),
               ),
@@ -478,11 +482,11 @@ class _TemplateSlotView extends StatelessWidget {
       content = Container(
         width: width,
         height: height,
-        color: Colors.black.withValues(alpha: 0.60),
+        color: const Color(0xFFF7F3D6).withValues(alpha: 0.9),
         child: Center(
           child: Icon(
             Icons.camera_alt_outlined,
-            color: Colors.white.withValues(alpha: 0.18),
+            color: const Color(0xFF7B7561).withValues(alpha: 0.45),
             size: (width * 0.22).clamp(10.0, 34.0),
           ),
         ),
@@ -529,9 +533,9 @@ class _TemplateSlotView extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.black.withValues(alpha: 0.55),
+                color: const Color(0xFFFFFFEA).withValues(alpha: 0.9),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.3),
+                  color: const Color(0xFF4A4638).withValues(alpha: 0.25),
                   width: 1.5,
                 ),
               ),
@@ -541,12 +545,12 @@ class _TemplateSlotView extends StatelessWidget {
                   style: GoogleFonts.lato(
                     fontSize: fontSize,
                     fontWeight: FontWeight.w300,
-                    color: Colors.white,
+                    color: const Color(0xFF4A4638),
                     height: 1.0,
                     shadows: [
                       Shadow(
                         blurRadius: 20,
-                        color: Colors.black.withValues(alpha: 0.9),
+                        color: const Color(0xFF4A4638).withValues(alpha: 0.25),
                       ),
                     ],
                   ),
@@ -574,10 +578,10 @@ class _TemplateSlotView extends StatelessWidget {
             height: 8,
             decoration: BoxDecoration(
               color: done
-                  ? const Color(0xFFE8C8A0)
+                  ? const Color(0xFFD9B87C)
                   : current
-                      ? Colors.white
-                      : Colors.white.withValues(alpha: 0.25),
+                      ? const Color(0xFF4A4638)
+                      : const Color(0xFF4A4638).withValues(alpha: 0.25),
               borderRadius: BorderRadius.circular(4),
             ),
           );
@@ -621,12 +625,12 @@ class _ActiveBorderState extends State<_ActiveBorder>
       builder: (_, __) => DecoratedBox(
         decoration: BoxDecoration(
           border: Border.all(
-            color: const Color(0xFFE8C8A0).withValues(alpha: _pulse.value),
+            color: const Color(0xFFD9B87C).withValues(alpha: _pulse.value),
             width: 2.5,
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFE8C8A0)
+              color: const Color(0xFFD9B87C)
                   .withValues(alpha: _pulse.value * 0.35),
               blurRadius: 12,
               spreadRadius: 2,

@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:provider/provider.dart';
@@ -16,21 +17,13 @@ class ScreensaverScreen extends StatefulWidget {
   State<ScreensaverScreen> createState() => _ScreensaverScreenState();
 }
 
-class _ScreensaverScreenState extends State<ScreensaverScreen>
-    with SingleTickerProviderStateMixin {
+class _ScreensaverScreenState extends State<ScreensaverScreen> {
   VideoPlayerController? _controller;
-  late AnimationController _pulseCtrl;
-  late Animation<double> _pulseAnim;
+  bool _isExiting = false;
 
   @override
   void initState() {
     super.initState();
-    _pulseCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-    _pulseAnim = Tween<double>(begin: 0.6, end: 1.0)
-        .animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
 
     final path = _kVideos[Random().nextInt(_kVideos.length)];
     _controller = VideoPlayerController.asset(path)
@@ -47,23 +40,31 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
 
   @override
   void dispose() {
-    _pulseCtrl.dispose();
     _controller?.dispose();
     super.dispose();
   }
 
   void _onTap() {
+    if (_isExiting) return;
+    _isExiting = true;
+
     final provider = context.read<PhotoboothProvider>();
     final controller = _controller;
-    if (controller != null && !controller.value.isPlaying) {
-      controller.play().then((_) {
-        if (mounted) setState(() {});
-      }).catchError((_) {});
-    }
 
-    Future.delayed(const Duration(milliseconds: 120), () {
-      if (mounted) provider.goToHomepage();
-    });
+    provider.goToHomepage();
+
+    _releaseVideoInBackground(controller);
+  }
+
+  void _releaseVideoInBackground(VideoPlayerController? controller) {
+    unawaited(
+      Future(() async {
+        try {
+          await controller?.pause();
+          await controller?.dispose();
+        } catch (_) {}
+      }),
+    );
   }
 
   @override
@@ -84,7 +85,7 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
               ),
             )
           else
-            const ColoredBox(color: Colors.black),
+            const ColoredBox(color: Color(0xFFFFFFEA)),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: RadialGradient(
@@ -92,60 +93,9 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
                 radius: 1.4,
                 colors: [
                   Colors.transparent,
-                  Colors.black.withValues(alpha: 0.55),
+                  const Color(0xFFFFFFEA).withValues(alpha: 0.75),
                 ],
               ),
-            ),
-          ),
-          Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                FadeTransition(
-                  opacity: _pulseAnim,
-                  child: Container(
-                    width: 160,
-                    height: 160,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.6),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Center(
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            width: 2,
-                          ),
-                          color: Colors.white.withValues(alpha: 0.08),
-                        ),
-                        child: const Icon(
-                          Icons.touch_app_rounded,
-                          color: Colors.white,
-                          size: 42,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  'TAP TO START',
-                  style: TextStyle(
-                    fontFamily: 'PoppinsMedium',
-                    fontSize: 13,
-                    letterSpacing: 6,
-                    color: Colors.white.withValues(alpha: 0.85),
-                    fontWeight: FontWeight.w300,
-                  ),
-                ),
-              ],
             ),
           ),
         ],

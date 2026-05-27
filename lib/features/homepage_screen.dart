@@ -69,7 +69,7 @@ class _HomepageScreenState extends State<HomepageScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Printer "${chosen.name}" saved.'),
-          backgroundColor: const Color(0xFF1A1A1A),
+          backgroundColor: const Color(0xFFF7F3D6),
         ),
       );
       context.read<PhotoboothProvider>().goToLayoutSelect();
@@ -98,7 +98,7 @@ class _HomepageScreenState extends State<HomepageScreen>
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
                 colors: [
-                  Colors.black.withValues(alpha: 0.70),
+                  const Color(0xFFFFFFEA).withValues(alpha: 0.9),
                   Colors.transparent,
                 ],
               ),
@@ -147,7 +147,7 @@ class _HomepageScreenState extends State<HomepageScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Printer changed to "${chosen.name}".'),
-          backgroundColor: const Color(0xFF1A1A1A),
+          backgroundColor: const Color(0xFFF7F3D6),
         ),
       );
     }
@@ -185,20 +185,20 @@ class _SavedPrinterBadgeState extends State<_SavedPrinterBadge> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.55),
+          color: const Color(0xFFF7F3D6).withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFE8C8A0), width: 1),
+          border: Border.all(color: const Color(0xFFD9B87C), width: 1),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.bluetooth_connected,
-                color: Color(0xFFE8C8A0), size: 14),
+                color: Color(0xFFD9B87C), size: 14),
             const SizedBox(width: 6),
             Text(
               _savedName!,
               style: const TextStyle(
-                color: Color(0xFFE8C8A0),
+                color: Color(0xFFD9B87C),
                 fontSize: 12,
                 fontFamily: 'PoppinsMedium',
               ),
@@ -207,10 +207,10 @@ class _SavedPrinterBadgeState extends State<_SavedPrinterBadge> {
             const Text(
               'Change',
               style: TextStyle(
-                color: Color(0xFF888888),
+                color: Color(0xFF7B7561),
                 fontSize: 11,
                 decoration: TextDecoration.underline,
-                decorationColor: Color(0xFF888888),
+                decorationColor: Color(0xFF7B7561),
               ),
             ),
           ],
@@ -263,16 +263,16 @@ class _StartButtonState extends State<_StartButton>
           width: 220,
           height: 64,
           decoration: BoxDecoration(
-            color: const Color(0xFFC0C0C0),
-            border: Border.all(color: Colors.black, width: 4),
+            color: const Color(0xFFEADFC3),
+            border: Border.all(color: const Color(0xFF4A4638), width: 4),
           ),
           child: Container(
             decoration: const BoxDecoration(
               border: Border(
-                top: BorderSide(color: Colors.white, width: 4),
-                left: BorderSide(color: Colors.white, width: 4),
-                bottom: BorderSide(color: Color(0xFF808080), width: 4),
-                right: BorderSide(color: Color(0xFF808080), width: 4),
+                top: BorderSide(color: Color(0xFFFFF6E6), width: 4),
+                left: BorderSide(color: Color(0xFFFFF6E6), width: 4),
+                bottom: BorderSide(color: Color(0xFFC6B895), width: 4),
+                right: BorderSide(color: Color(0xFFC6B895), width: 4),
               ),
             ),
             child: const Center(
@@ -281,7 +281,7 @@ class _StartButtonState extends State<_StartButton>
                 style: TextStyle(
                   fontFamily: 'CHAOS16',
                   fontSize: 24,
-                  color: Colors.black,
+                  color: Color(0xFF4A4638),
                 ),
               ),
             ),

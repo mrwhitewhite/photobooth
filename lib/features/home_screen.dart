@@ -4,12 +4,12 @@ import '../models/photo_models.dart';
 import '../services/photobooth_provider.dart';
 
 class _C {
-  static const bg = Color(0xFF0D0D0D);
-  static const surface = Color(0xFF1A1A1A);
-  static const border = Color(0xFF2E2E2E);
-  static const accent = Color(0xFFE8C8A0);
-  static const text = Color(0xFFF0EDE8);
-  static const muted = Color(0xFF888480);
+  static const bg = Color(0xFFFFFFEA);
+  static const surface = Color(0xFFF7F3D6);
+  static const border = Color(0xFFE5DFC1);
+  static const accent = Color(0xFFD9B87C);
+  static const text = Color(0xFF4A4638);
+  static const muted = Color(0xFF7B7561);
 }
 
 class HomeScreen extends StatefulWidget {
@@ -379,7 +379,7 @@ class _ChooseButtonState extends State<_ChooseButton>
                     fontSize: 13,
                     letterSpacing: 4,
                     fontWeight: FontWeight.w700,
-                    color: _C.bg,
+                    color: _C.text,
                   ),
                 )
               ],

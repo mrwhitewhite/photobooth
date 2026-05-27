@@ -116,7 +116,11 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
           });
         },
         onError: (Object e) {
-          if (mounted) setState(() => _error = e.toString());
+          if (mounted) {
+            setState(() {
+              _error = _parseBluetoothError(e.toString());
+            });
+          }
         },
         onDone: () {
           if (mounted) setState(() => _scanning = false);
@@ -125,11 +129,32 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.toString();
+          _error = _parseBluetoothError(e.toString());
           _scanning = false;
         });
       }
     }
+  }
+
+  String _parseBluetoothError(String rawError) {
+    final lowerError = rawError.toLowerCase();
+
+    if (lowerError.contains('disabled') ||
+        lowerError.contains('off') ||
+        lowerError.contains('not enabled') ||
+        lowerError.contains('status 11')) {
+      return 'Bluetooth is turned off. Please enable it in your settings.';
+    }
+
+    if (lowerError.contains('permission')) {
+      return 'Bluetooth permission denied. Please grant permission in settings.';
+    }
+
+    if (lowerError.contains('location')) {
+      return 'Location services are required to scan for printers.';
+    }
+
+    return 'Could not start scan. Make sure Bluetooth is turned on.';
   }
 
   void _select(BluetoothDeviceInfo info) {
@@ -141,21 +166,21 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF242424),
+        backgroundColor: const Color(0xFFF2EED0),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text(
           'Remove device?',
-          style: TextStyle(color: Color(0xFFF0EDE8), fontSize: 15),
+          style: TextStyle(color: Color(0xFF4A4638), fontSize: 15),
         ),
         content: Text(
           'Remove "${d.name}" from the list?\n\nThis only hides it here — to fully unpair, go to your phone\'s Bluetooth settings.',
-          style: const TextStyle(color: Color(0xFF888888), fontSize: 13),
+          style: const TextStyle(color: Color(0xFF7B7561), fontSize: 13),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
             child: const Text('Cancel',
-                style: TextStyle(color: Color(0xFF888888))),
+                style: TextStyle(color: Color(0xFF7B7561))),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
@@ -179,7 +204,7 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
       ..sort((a, b) => b.rssi.compareTo(a.rssi));
 
     return Dialog(
-      backgroundColor: const Color(0xFF1A1A1A),
+      backgroundColor: const Color(0xFFF7F3D6),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -190,13 +215,13 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
             Row(
               children: [
                 const Icon(Icons.bluetooth_searching,
-                    color: Color(0xFFE8C8A0), size: 22),
+                    color: Color(0xFFD9B87C), size: 22),
                 const SizedBox(width: 10),
                 const Expanded(
                   child: Text(
                     'Select Bluetooth Printer',
                     style: TextStyle(
-                      color: Color(0xFFF0EDE8),
+                      color: Color(0xFF4A4638),
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
@@ -208,7 +233,7 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
                     height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Color(0xFFE8C8A0),
+                      color: Color(0xFFD9B87C),
                     ),
                   ),
               ],
@@ -218,7 +243,7 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
               _scanning
                   ? 'Scanning… paired Classic BT printers shown immediately'
                   : 'Scan complete — paired Classic BT printers listed above',
-              style: const TextStyle(color: Color(0xFF888888), fontSize: 12),
+              style: const TextStyle(color: Color(0xFF7B7561), fontSize: 12),
             ),
             const SizedBox(height: 14),
             if (_error != null)
@@ -239,7 +264,7 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
                           _scanning
                               ? 'Looking for devices…'
                               : 'No devices found.',
-                          style: const TextStyle(color: Color(0xFF888888)),
+                          style: const TextStyle(color: Color(0xFF7B7561)),
                         ),
                       ),
                     )
@@ -247,7 +272,7 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
                       shrinkWrap: true,
                       itemCount: devices.length,
                       separatorBuilder: (_, __) =>
-                          const Divider(color: Color(0xFF333333), height: 1),
+                          const Divider(color: Color(0xFFE0D8BA), height: 1),
                       itemBuilder: (_, i) {
                         final d = devices[i];
                         final isXprinter =
@@ -264,16 +289,16 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
                           leading: Icon(
                             Icons.print,
                             color: isXprinter
-                                ? const Color(0xFFE8C8A0)
-                                : const Color(0xFF666666),
+                                ? const Color(0xFFD9B87C)
+                                : const Color(0xFF8F8973),
                             size: 20,
                           ),
                           title: Text(
                             d.name,
                             style: TextStyle(
                               color: isXprinter
-                                  ? const Color(0xFFE8C8A0)
-                                  : const Color(0xFFF0EDE8),
+                                  ? const Color(0xFFD9B87C)
+                                  : const Color(0xFF4A4638),
                               fontSize: 14,
                               fontWeight: isXprinter
                                   ? FontWeight.bold
@@ -285,12 +310,12 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
                                 ? '${d.id}  •  Paired (Classic BT)'
                                 : '${d.id}  •  ${d.rssi} dBm',
                             style: const TextStyle(
-                                color: Color(0xFF888888), fontSize: 11),
+                                color: Color(0xFF7B7561), fontSize: 11),
                           ),
                           trailing: isXprinter
                               ? const Text('Recommended',
                                   style: TextStyle(
-                                      color: Color(0xFFE8C8A0), fontSize: 10))
+                                      color: Color(0xFFD9B87C), fontSize: 10))
                               : isBonded
                                   ? const Icon(Icons.bluetooth,
                                       color: Color(0xFF5599FF), size: 14)
@@ -309,14 +334,14 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
                 TextButton.icon(
                   onPressed: _scanning ? null : _startScan,
                   icon: const Icon(Icons.refresh,
-                      size: 16, color: Color(0xFFE8C8A0)),
+                      size: 16, color: Color(0xFFD9B87C)),
                   label: const Text('Rescan',
-                      style: TextStyle(color: Color(0xFFE8C8A0))),
+                      style: TextStyle(color: Color(0xFFD9B87C))),
                 ),
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(null),
                   child: const Text('Cancel',
-                      style: TextStyle(color: Color(0xFF888888))),
+                      style: TextStyle(color: Color(0xFF7B7561))),
                 ),
               ],
             ),
