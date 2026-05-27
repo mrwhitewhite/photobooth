@@ -3,16 +3,12 @@ import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
 
 class EmailService {
-  // ── Configure your SMTP credentials here ──────────────────────────────────
   static const String _smtpHost = 'smtp.gmail.com';
   static const int _smtpPort = 587;
-  static const String _senderEmail = 'wuongzize5@gmail.com'; // <-- change this
-  static const String _senderPassword =
-      'rfxbmzcoshvpylwo'; // <-- change this (use Gmail App Password)
+  static const String _senderEmail = 'wuongzize5@gmail.com';
+  static const String _senderPassword = 'rfxbmzcoshvpylwo';
   static const String _senderName = 'MyReceipt Photobooth';
-  // ──────────────────────────────────────────────────────────────────────────
 
-  /// Sends [imageBytes] (PNG) to [recipientEmail].
   static Future<void> sendPhoto({
     required String recipientEmail,
     required Uint8List imageBytes,

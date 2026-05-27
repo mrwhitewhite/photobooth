@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
 import 'package:image/image.dart' as img;
 import 'package:permission_handler/permission_handler.dart';
@@ -35,6 +36,10 @@ class CameraViewState extends State<CameraView>
   @override
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
 
     _countdownAnim = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 700));
@@ -286,12 +291,15 @@ class CameraViewState extends State<CameraView>
     final size = controller.value.previewSize;
     if (size == null) return const SizedBox.shrink();
 
+    final double previewW = size.height;
+    final double previewH = size.width;
+
     return ClipRect(
       child: FittedBox(
         fit: BoxFit.cover,
         child: SizedBox(
-          width: size.width,
-          height: size.height,
+          width: previewW,
+          height: previewH,
           child: Transform(
             alignment: Alignment.center,
             transform: Matrix4.diagonal3Values(-1.0, 1.0, 1.0),
