@@ -1,16 +1,12 @@
-import 'dart:js_interop';
 import 'dart:math';
-import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
-
+import 'package:video_player/video_player.dart';
 import 'package:provider/provider.dart';
-import 'package:web/web.dart' as web;
 import '../services/photobooth_provider.dart';
 
-// Screensaver video assets (convert .mov → .webm for best cross-browser support)
 const _kVideos = [
-  'assets/screen_saver/screen_saver_1.mov',
-  'assets/screen_saver/screen_saver_2.mov',
+  'assets/screen_saver/screen_saver_1.mp4',
+  'assets/screen_saver/screen_saver_2.mp4',
 ];
 
 class ScreensaverScreen extends StatefulWidget {
@@ -22,9 +18,7 @@ class ScreensaverScreen extends StatefulWidget {
 
 class _ScreensaverScreenState extends State<ScreensaverScreen>
     with SingleTickerProviderStateMixin {
-  late web.HTMLVideoElement _video;
-  late String _viewId;
-  bool _videoPlaying = false;
+  VideoPlayerController? _controller;
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseAnim;
 
@@ -38,50 +32,35 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
     _pulseAnim = Tween<double>(begin: 0.6, end: 1.0)
         .animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
 
-    // Pick a random video
     final path = _kVideos[Random().nextInt(_kVideos.length)];
-    _viewId = 'screensaver-video-${DateTime.now().millisecondsSinceEpoch}';
-
-    _video = web.document.createElement('video') as web.HTMLVideoElement
-      ..autoplay = true
-      ..muted = true
-      ..loop = true
-      ..playsInline = true
-      ..style.objectFit = 'cover'
-      ..style.width = '100%'
-      ..style.height = '100%'
-      ..src = path;
-
-    ui_web.platformViewRegistry.registerViewFactory(
-      _viewId,
-      (int _) => _video,
-    );
-
-    // Try to play immediately (works in standalone PWA mode)
-    _video.play().toDart.then((_) {
-      if (mounted) setState(() => _videoPlaying = true);
-    }).catchError((_) {
-      // Autoplay blocked — show static overlay; video plays on first tap
-      if (mounted) setState(() => _videoPlaying = false);
-    });
+    _controller = VideoPlayerController.asset(path)
+      ..setLooping(true)
+      ..setVolume(0)
+      ..initialize().then((_) {
+        if (!mounted) return;
+        _controller!.play();
+        setState(() {});
+      }).catchError((_) {
+        if (mounted) setState(() {});
+      });
   }
 
   @override
   void dispose() {
     _pulseCtrl.dispose();
-    _video.pause();
-    _video.src = '';
+    _controller?.dispose();
     super.dispose();
   }
 
   void _onTap() {
     final provider = context.read<PhotoboothProvider>();
-    if (!_videoPlaying) {
-      _video.play().toDart.then((_) {
-        if (mounted) setState(() => _videoPlaying = true);
+    final controller = _controller;
+    if (controller != null && !controller.value.isPlaying) {
+      controller.play().then((_) {
+        if (mounted) setState(() {});
       }).catchError((_) {});
     }
-    // Navigate after a brief moment so the tap feels snappy
+
     Future.delayed(const Duration(milliseconds: 120), () {
       if (mounted) provider.goToHomepage();
     });
@@ -95,10 +74,17 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // ── Video background ─────────────────────────────────────────────
-          HtmlElementView(key: ValueKey(_viewId), viewType: _viewId),
-
-          // ── Dark vignette ─────────────────────────────────────────────────
+          if (_controller != null && _controller!.value.isInitialized)
+            FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(
+                width: _controller!.value.size.width,
+                height: _controller!.value.size.height,
+                child: VideoPlayer(_controller!),
+              ),
+            )
+          else
+            const ColoredBox(color: Colors.black),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: RadialGradient(
@@ -111,13 +97,10 @@ class _ScreensaverScreenState extends State<ScreensaverScreen>
               ),
             ),
           ),
-
-          // ── "Tap to Start" overlay ────────────────────────────────────────
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Pulse ring
                 FadeTransition(
                   opacity: _pulseAnim,
                   child: Container(

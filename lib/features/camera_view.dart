@@ -1,11 +1,11 @@
-import 'dart:async';
-import 'dart:js_interop';
+import 'dart:math' as math;
 import 'dart:typed_data';
-import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
+import 'package:image/image.dart' as img;
+import 'package:permission_handler/permission_handler.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:web/web.dart' as web;
 import '../models/photo_models.dart';
 import '../services/photobooth_provider.dart';
 
@@ -18,15 +18,14 @@ class CameraView extends StatefulWidget {
 
 class CameraViewState extends State<CameraView>
     with SingleTickerProviderStateMixin {
-  late web.HTMLVideoElement _videoElement;
-  late String _viewID;
+  CameraController? _controller;
 
   int _countdown = 0;
   bool _showFlash = false;
   bool _isCapturing = false;
   bool _cameraReady = false;
+  String? _cameraError;
 
-  // Template image intrinsic size (loaded async)
   Size? _templateImageSize;
 
   late AnimationController _countdownAnim;
@@ -36,42 +35,25 @@ class CameraViewState extends State<CameraView>
   @override
   void initState() {
     super.initState();
-    _viewID = 'camera-view-${DateTime.now().millisecondsSinceEpoch}';
 
     _countdownAnim = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 700));
-    _countdownScale = Tween<double>(begin: 1.6, end: 0.85)
-        .animate(CurvedAnimation(parent: _countdownAnim, curve: Curves.easeOut));
+    _countdownScale = Tween<double>(begin: 1.6, end: 0.85).animate(
+        CurvedAnimation(parent: _countdownAnim, curve: Curves.easeOut));
     _countdownOpacity = Tween<double>(begin: 1.0, end: 0.0)
         .animate(CurvedAnimation(parent: _countdownAnim, curve: Curves.easeIn));
 
-    _videoElement =
-        web.document.createElement('video') as web.HTMLVideoElement
-          ..autoplay = true
-          ..muted = true
-          ..playsInline = true
-          ..style.transform = 'scaleX(-1)' // mirror
-          ..style.objectFit = 'cover'
-          ..style.width = '100%'
-          ..style.height = '100%';
-
-    ui_web.platformViewRegistry
-        .registerViewFactory(_viewID, (int _) => _videoElement);
-
     _initCamera();
 
-    // Load template image dimensions after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadTemplateSize());
   }
 
   @override
   void dispose() {
     _countdownAnim.dispose();
-    _stopCamera();
+    _controller?.dispose();
     super.dispose();
   }
-
-  // ── Template image size ─────────────────────────────────────────────────────
 
   void _loadTemplateSize() {
     if (!mounted) return;
@@ -91,33 +73,56 @@ class CameraViewState extends State<CameraView>
     }));
   }
 
-  // ── Camera ──────────────────────────────────────────────────────────────────
-
-  void _stopCamera() {
-    if (_videoElement.srcObject != null) {
-      final stream = _videoElement.srcObject as web.MediaStream;
-      for (final track in stream.getTracks().toDart) {
-        track.stop();
-      }
-    }
-  }
-
   Future<void> _initCamera() async {
-    final constraints =
-        {'video': {'facingMode': 'user'}, 'audio': false}.jsify()
-            as web.MediaStreamConstraints;
     try {
-      final stream = await web.window.navigator.mediaDevices
-          .getUserMedia(constraints)
-          .toDart;
-      _videoElement.srcObject = stream;
-      await _videoElement.play().toDart;
-      if (mounted) {
-        setState(() => _cameraReady = true);
-        Future.delayed(const Duration(seconds: 2), _startNextCapture);
+      final permission = await Permission.camera.request();
+      if (!permission.isGranted) {
+        if (mounted) {
+          setState(() {
+            _cameraError = 'Camera permission is required to continue.';
+            _cameraReady = false;
+          });
+        }
+        return;
       }
+
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _cameraError = 'No camera found on this device.';
+            _cameraReady = false;
+          });
+        }
+        return;
+      }
+
+      final selected = cameras.firstWhere(
+        (c) => c.lensDirection == CameraLensDirection.front,
+        orElse: () => cameras.first,
+      );
+
+      final controller = CameraController(
+        selected,
+        ResolutionPreset.medium,
+        enableAudio: false,
+      );
+      _controller = controller;
+      await controller.initialize();
+
+      if (!mounted) return;
+      setState(() {
+        _cameraReady = true;
+        _cameraError = null;
+      });
+      Future.delayed(const Duration(seconds: 2), _startNextCapture);
     } catch (e) {
-      debugPrint('Camera Error: $e');
+      if (mounted) {
+        setState(() {
+          _cameraError = 'Camera error: $e';
+          _cameraReady = false;
+        });
+      }
     }
   }
 
@@ -127,7 +132,6 @@ class CameraViewState extends State<CameraView>
     if (_isCapturing) return;
     _isCapturing = true;
 
-    // Countdown 3 → 2 → 1
     for (int i = 3; i > 0; i--) {
       if (!mounted) return;
       setState(() => _countdown = i);
@@ -151,7 +155,6 @@ class CameraViewState extends State<CameraView>
       provider.addPhoto(bytes);
       _isCapturing = false;
       if (!provider.sessionComplete) {
-        // Brief pause before next slot countdown
         await Future.delayed(const Duration(milliseconds: 600));
         _startNextCapture();
       }
@@ -162,40 +165,37 @@ class CameraViewState extends State<CameraView>
 
   Future<Uint8List?> _captureFrame() async {
     try {
-      final canvas =
-          web.document.createElement('canvas') as web.HTMLCanvasElement;
-      canvas.width = _videoElement.videoWidth;
-      canvas.height = _videoElement.videoHeight;
-      final ctx = canvas.context2D;
-      // Un-mirror for correct saved image
-      ctx.translate(canvas.width.toDouble(), 0);
-      ctx.scale(-1, 1);
-      ctx.drawImage(_videoElement, 0, 0);
+      final controller = _controller;
+      if (controller == null || !controller.value.isInitialized) return null;
+      if (controller.value.isTakingPicture) return null;
 
-      final completer = Completer<web.Blob>();
-      canvas.toBlob(
-          (web.Blob blob) {
-            completer.complete(blob);
-          }.toJS,
-          'image/jpeg',
-          0.92.jsify());
-      final blob = await completer.future;
+      final file = await controller.takePicture();
+      final bytes = await file.readAsBytes();
+      final decoded = img.decodeImage(bytes);
+      if (decoded == null) return bytes;
 
-      final reader = web.FileReader();
-      reader.readAsArrayBuffer(blob);
-      await reader.onLoadEnd.first;
-
-      final result = reader.result;
-      if (result != null && result.isA<JSArrayBuffer>()) {
-        return (result as JSArrayBuffer).toDart.asUint8List();
-      }
+      final normalized = _downscaleImage(decoded);
+      final flipped = img.flipHorizontal(normalized);
+      final encoded = img.encodeJpg(flipped, quality: 92);
+      return Uint8List.fromList(encoded);
     } catch (e) {
       debugPrint('Capture error: $e');
     }
     return null;
   }
 
-  // ── Build ───────────────────────────────────────────────────────────────────
+  img.Image _downscaleImage(img.Image source) {
+    const maxDimension = 2048;
+    final maxSide = math.max(source.width, source.height);
+    if (maxSide <= maxDimension) return source;
+    final scale = maxDimension / maxSide;
+    return img.copyResize(
+      source,
+      width: (source.width * scale).round(),
+      height: (source.height * scale).round(),
+      interpolation: img.Interpolation.cubic,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -208,7 +208,6 @@ class CameraViewState extends State<CameraView>
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // ── Radial dark background ─────────────────────────────────────────
           Container(
             decoration: const BoxDecoration(
               gradient: RadialGradient(
@@ -218,8 +217,6 @@ class CameraViewState extends State<CameraView>
               ),
             ),
           ),
-
-          // ── Loading overlay ────────────────────────────────────────────────
           if (!_cameraReady)
             Container(
               color: Colors.black.withValues(alpha: 0.85),
@@ -227,40 +224,49 @@ class CameraViewState extends State<CameraView>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const CircularProgressIndicator(
-                        color: Color(0xFFE8C8A0), strokeWidth: 1.5),
-                    const SizedBox(height: 20),
-                    Text(
-                      'STARTING CAMERA',
-                      style: GoogleFonts.lato(
-                        fontSize: 10,
-                        letterSpacing: 4,
-                        color: Colors.white54,
+                    if (_cameraError == null) ...[
+                      const CircularProgressIndicator(
+                          color: Color(0xFFE8C8A0), strokeWidth: 1.5),
+                      const SizedBox(height: 20),
+                      Text(
+                        'STARTING CAMERA',
+                        style: GoogleFonts.lato(
+                          fontSize: 10,
+                          letterSpacing: 4,
+                          color: Colors.white54,
+                        ),
                       ),
-                    ),
+                    ] else ...[
+                      const Icon(Icons.error_outline,
+                          color: Color(0xFFE8C8A0), size: 40),
+                      const SizedBox(height: 16),
+                      Text(
+                        _cameraError!,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.lato(
+                          fontSize: 12,
+                          letterSpacing: 1,
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
             ),
-
-          // ── Template + slot camera view ────────────────────────────────────
           if (_cameraReady)
             _TemplateSlotView(
               layout: layout,
               slots: slots,
               templateImageSize: _templateImageSize,
-              viewID: _viewID,
+              cameraPreview: _buildCameraPreview(),
               provider: provider,
               countdown: _countdown,
               countdownAnim: _countdownAnim,
               countdownScale: _countdownScale,
               countdownOpacity: _countdownOpacity,
             ),
-
-          // ── Top bar (logo + counter) ───────────────────────────────────────
           if (_cameraReady) _buildTopBar(provider),
-
-          // ── Full-screen flash ──────────────────────────────────────────────
           if (_showFlash)
             AnimatedOpacity(
               opacity: _showFlash ? 1.0 : 0.0,
@@ -268,6 +274,30 @@ class CameraViewState extends State<CameraView>
               child: Container(color: Colors.white),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCameraPreview() {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) {
+      return const SizedBox.shrink();
+    }
+    final size = controller.value.previewSize;
+    if (size == null) return const SizedBox.shrink();
+
+    return ClipRect(
+      child: FittedBox(
+        fit: BoxFit.cover,
+        child: SizedBox(
+          width: size.width,
+          height: size.height,
+          child: Transform(
+            alignment: Alignment.center,
+            transform: Matrix4.diagonal3Values(-1.0, 1.0, 1.0),
+            child: CameraPreview(controller),
+          ),
+        ),
       ),
     );
   }
@@ -294,11 +324,9 @@ class CameraViewState extends State<CameraView>
           children: [
             Image.asset('assets/logo.png', height: 36, fit: BoxFit.contain),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               decoration: BoxDecoration(
-                border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.3)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
                 borderRadius: BorderRadius.circular(3),
                 color: Colors.black.withValues(alpha: 0.3),
               ),
@@ -319,13 +347,11 @@ class CameraViewState extends State<CameraView>
   }
 }
 
-// ── Template + Slot overlay widget ────────────────────────────────────────────
-
 class _TemplateSlotView extends StatelessWidget {
   final PhotoLayout layout;
   final List<LayoutSlot> slots;
   final Size? templateImageSize;
-  final String viewID;
+  final Widget cameraPreview;
   final PhotoboothProvider provider;
   final int countdown;
   final AnimationController countdownAnim;
@@ -336,7 +362,7 @@ class _TemplateSlotView extends StatelessWidget {
     required this.layout,
     required this.slots,
     required this.templateImageSize,
-    required this.viewID,
+    required this.cameraPreview,
     required this.provider,
     required this.countdown,
     required this.countdownAnim,
@@ -350,11 +376,10 @@ class _TemplateSlotView extends StatelessWidget {
       final screenW = constraints.maxWidth;
       final screenH = constraints.maxHeight;
 
-      // ── Calculate template display rect ───────────────────────────────────
       double tw, th;
       if (templateImageSize != null) {
         final ar = templateImageSize!.width / templateImageSize!.height;
-        // Fill up to 85% of screen height; cap width at 60% of screen width
+
         th = screenH * 0.85;
         tw = th * ar;
         if (tw > screenW * 0.60) {
@@ -362,12 +387,10 @@ class _TemplateSlotView extends StatelessWidget {
           th = tw / ar;
         }
       } else {
-        // Fallback while image loads: assume portrait 2:3
         th = screenH * 0.85;
         tw = th * (2 / 3);
       }
 
-      // Center the template on screen
       final offsetX = (screenW - tw) / 2;
       final offsetY = (screenH - th) / 2;
 
@@ -375,21 +398,15 @@ class _TemplateSlotView extends StatelessWidget {
       final hasActiveSlot =
           !provider.sessionComplete && activeIndex < slots.length;
 
-      // Active slot pixel rect (used for camera + border + countdown)
-      final double camLeft = hasActiveSlot
-          ? offsetX + slots[activeIndex].x * tw
-          : 0;
-      final double camTop = hasActiveSlot
-          ? offsetY + slots[activeIndex].y * th
-          : 0;
-      final double camW =
-          hasActiveSlot ? slots[activeIndex].w * tw : 0;
-      final double camH =
-          hasActiveSlot ? slots[activeIndex].h * th : 0;
+      final double camLeft =
+          hasActiveSlot ? offsetX + slots[activeIndex].x * tw : 0;
+      final double camTop =
+          hasActiveSlot ? offsetY + slots[activeIndex].y * th : 0;
+      final double camW = hasActiveSlot ? slots[activeIndex].w * tw : 0;
+      final double camH = hasActiveSlot ? slots[activeIndex].h * th : 0;
 
       return Stack(
         children: [
-          // ── Template PNG ─────────────────────────────────────────────────
           Positioned(
             left: offsetX,
             top: offsetY,
@@ -397,26 +414,16 @@ class _TemplateSlotView extends StatelessWidget {
             height: th,
             child: Image.asset(layout.templateAsset, fit: BoxFit.fill),
           ),
-
-          // ── Slot overlays (captured photos + empty placeholders) ──────────
-          // NOTE: HtmlElementView is NOT here — it lives as a stable node below
           for (int i = 0; i < slots.length; i++)
             _buildSlotWidget(i, slots[i], tw, th, offsetX, offsetY),
-
-          // ── CAMERA FEED — stable widget, only coordinates change ──────────
-          // Keeping HtmlElementView at a fixed position in the widget tree
-          // prevents Flutter Web from destroying/recreating the platform view
-          // when the active slot index changes.
           if (hasActiveSlot)
             Positioned(
               left: camLeft,
               top: camTop,
               width: camW,
               height: camH,
-              child: HtmlElementView(viewType: viewID),
+              child: cameraPreview,
             ),
-
-          // ── Active slot pulsing gold border (above camera) ────────────────
           if (hasActiveSlot)
             Positioned(
               left: camLeft,
@@ -425,13 +432,9 @@ class _TemplateSlotView extends StatelessWidget {
               height: camH,
               child: const _ActiveBorder(),
             ),
-
-          // ── Countdown overlay on active slot ──────────────────────────────
           if (countdown > 0 && hasActiveSlot)
             _buildCountdownOverlay(
                 slots[activeIndex], tw, th, offsetX, offsetY),
-
-          // ── Bottom progress dots ──────────────────────────────────────────
           Positioned(
             bottom: 24,
             left: 0,
@@ -460,14 +463,11 @@ class _TemplateSlotView extends StatelessWidget {
     final isActive =
         index == provider.capturedCount && !provider.sessionComplete;
 
-    // Active slot: camera is rendered as a separate stable Positioned above;
-    // return an empty box here so it doesn't block the camera layer.
     if (isActive) return const SizedBox.shrink();
 
     Widget content;
 
     if (isCaptured) {
-      // ── Captured photo fills the slot ───────────────────────────────────
       content = Image.memory(
         provider.photos[index],
         fit: BoxFit.cover,
@@ -475,7 +475,6 @@ class _TemplateSlotView extends StatelessWidget {
         height: height,
       );
     } else {
-      // ── Empty future slot ────────────────────────────────────────────────
       content = Container(
         width: width,
         height: height,
@@ -513,7 +512,6 @@ class _TemplateSlotView extends StatelessWidget {
     final centerX = slotLeft + slotW / 2;
     final centerY = slotTop + slotH / 2;
 
-    // Circle size: 60% of the smaller slot dimension, capped
     final circleSize = (slotW.clamp(60.0, 300.0) * 0.65).clamp(60.0, 180.0);
     final fontSize = (circleSize * 0.5).clamp(24.0, 90.0);
 
@@ -567,7 +565,8 @@ class _TemplateSlotView extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: List.generate(provider.totalRequired, (i) {
           final done = i < provider.capturedCount;
-          final current = i == provider.capturedCount && !provider.sessionComplete;
+          final current =
+              i == provider.capturedCount && !provider.sessionComplete;
           return AnimatedContainer(
             duration: const Duration(milliseconds: 300),
             margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -587,8 +586,6 @@ class _TemplateSlotView extends StatelessWidget {
     );
   }
 }
-
-// ── Pulsing gold border for the active slot ────────────────────────────────────
 
 class _ActiveBorder extends StatefulWidget {
   const _ActiveBorder();

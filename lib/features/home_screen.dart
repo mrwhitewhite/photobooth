@@ -3,12 +3,11 @@ import 'package:provider/provider.dart';
 import '../models/photo_models.dart';
 import '../services/photobooth_provider.dart';
 
-// ── Palette ───────────────────────────────────────────────────────────────────
 class _C {
   static const bg = Color(0xFF0D0D0D);
   static const surface = Color(0xFF1A1A1A);
   static const border = Color(0xFF2E2E2E);
-  static const accent = Color(0xFFE8C8A0); // warm gold
+  static const accent = Color(0xFFE8C8A0);
   static const text = Color(0xFFF0EDE8);
   static const muted = Color(0xFF888480);
 }
@@ -52,7 +51,6 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             _Header(),
             const Divider(color: _C.border, height: 1),
-            // ── Main layout preview ──────────────────────────────────
             Expanded(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 350),
@@ -74,7 +72,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            // ── Bottom bar: ← [Choose This Layout] → ─────────────────
             _BottomBar(
               currentIndex: _currentIndex,
               total: _layouts.length,
@@ -90,7 +87,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ── Header ────────────────────────────────────────────────────────────────────
 class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -99,12 +95,12 @@ class _Header extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Column(
+          const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'SELECT YOUR FORMAT',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'CHAOS16',
                   fontSize: 10,
                   letterSpacing: 5,
@@ -112,10 +108,10 @@ class _Header extends StatelessWidget {
                   fontWeight: FontWeight.w400,
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               Text(
                 'Choose a Layout',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'CHAOS16',
                   fontSize: 48,
                   fontWeight: FontWeight.w300,
@@ -137,7 +133,6 @@ class _Header extends StatelessWidget {
   }
 }
 
-// ── Single layout preview (one per page) ──────────────────────────────────────
 class _LayoutPreview extends StatelessWidget {
   final PhotoLayout layout;
   const _LayoutPreview({super.key, required this.layout});
@@ -148,7 +143,6 @@ class _LayoutPreview extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 24),
       child: Column(
         children: [
-          // ── Layout name + details ──
           Text(
             layout.label.toUpperCase(),
             style: const TextStyle(
@@ -187,7 +181,6 @@ class _LayoutPreview extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          // ── Large thumbnail ──
           Expanded(
             child: Container(
               decoration: BoxDecoration(
@@ -211,7 +204,6 @@ class _LayoutPreview extends StatelessWidget {
   }
 }
 
-// ── Bottom bar with left / choose / right ─────────────────────────────────────
 class _BottomBar extends StatelessWidget {
   final int currentIndex;
   final int total;
@@ -235,25 +227,22 @@ class _BottomBar extends StatelessWidget {
     final canGoRight = currentIndex < total - 1;
 
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         border: Border(top: BorderSide(color: _C.border, width: 1)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
       child: Row(
         children: [
-          // ── Left arrow ──
           _NavArrowButton(
             icon: Icons.arrow_back_rounded,
             enabled: canGoLeft,
             onTap: onLeft,
           ),
           const SizedBox(width: 16),
-          // ── Choose this layout button (fills remaining space) ──
           Expanded(
             child: _ChooseButton(onTap: onChoose),
           ),
           const SizedBox(width: 16),
-          // ── Right arrow ──
           _NavArrowButton(
             icon: Icons.arrow_forward_rounded,
             enabled: canGoRight,
@@ -265,7 +254,6 @@ class _BottomBar extends StatelessWidget {
   }
 }
 
-// ── Arrow navigation button ───────────────────────────────────────────────────
 class _NavArrowButton extends StatefulWidget {
   final IconData icon;
   final bool enabled;
@@ -318,7 +306,6 @@ class _NavArrowButtonState extends State<_NavArrowButton> {
   }
 }
 
-// ── Choose button ─────────────────────────────────────────────────────────────
 class _ChooseButton extends StatefulWidget {
   final VoidCallback onTap;
   const _ChooseButton({required this.onTap});
@@ -382,12 +369,12 @@ class _ChooseButtonState extends State<_ChooseButton>
                   : [],
             ),
             alignment: Alignment.center,
-            child: Row(
+            child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   'CHOOSE THIS LAYOUT',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'CHAOS16',
                     fontSize: 13,
                     letterSpacing: 4,

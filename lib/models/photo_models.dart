@@ -1,20 +1,16 @@
 import 'dart:typed_data';
 
-// ── Photo capture result ──────────────────────────────────────────────────────
 class CapturedPhoto {
   final Uint8List bytes;
   final DateTime capturedAt;
   CapturedPhoto({required this.bytes, required this.capturedAt});
 }
 
-// ── Slot: normalized photo position within a template ─────────────────────────
-// x, y, w, h are all fractions of the template's total width/height (0.0–1.0)
 class LayoutSlot {
   final double x, y, w, h;
   const LayoutSlot(this.x, this.y, this.w, this.h);
 }
 
-// ── Photo layout options ──────────────────────────────────────────────────────
 enum PhotoLayout {
   layout1x1,
   layout2x1,
@@ -46,7 +42,6 @@ enum PhotoLayout {
         PhotoLayout.layout4x2 => '4×2 full session',
       };
 
-  /// Asset path for the transparent template PNG overlay
   String get templateAsset => switch (this) {
         PhotoLayout.layout1x1 => 'assets/layout/1x1.png',
         PhotoLayout.layout2x1 => 'assets/layout/2x1_camera.png',
@@ -55,12 +50,8 @@ enum PhotoLayout {
         PhotoLayout.layout4x2 => 'assets/layout/4x2.png',
       };
 
-  /// Thumbnail shown on the layout selection card (same PNG, just displayed smaller)
   String get thumbnailAsset => templateAsset;
 
-  /// Photo slot positions within the template (normalized 0.0–1.0).
-  /// These assume standard photobooth templates with consistent margins.
-  /// Adjust if your specific template PNGs have different hole positions.
   List<LayoutSlot> get slots => switch (this) {
         PhotoLayout.layout1x1 => const [
             LayoutSlot(0.0440, 0.1587, 0.9116, 0.6891),
