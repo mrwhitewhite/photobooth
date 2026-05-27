@@ -172,8 +172,7 @@ class _PreviewScreenState extends State<PreviewScreen>
                     if (v == null || v.trim().isEmpty) {
                       return 'Please enter an email address';
                     }
-                    final emailRegex =
-                        RegExp(r'^[\w.+-]+@[\w-]+\.[\w.]+$');
+                    final emailRegex = RegExp(r'^[\w.+-]+@[\w-]+\.[\w.]+$');
                     if (!emailRegex.hasMatch(v.trim())) {
                       return 'Please enter a valid email address';
                     }
@@ -522,13 +521,15 @@ class _PreviewScreenState extends State<PreviewScreen>
         ),
         if (provider.allPhotos.isNotEmpty) ...[
           const SizedBox(height: 20),
-          _PhotoStrip(photos: provider.allPhotos, layout: provider.selectedLayout),
+          _PhotoStrip(
+              photos: provider.allPhotos, layout: provider.selectedLayout),
         ],
         if (!compact) const Spacer(),
         if (compact) const SizedBox(height: 24),
         _ActionButton(
           label: _isPrinting ? 'PRINTING…' : 'PRINT',
-          icon: _isPrinting ? Icons.hourglass_top_rounded : Icons.print_outlined,
+          icon:
+              _isPrinting ? Icons.hourglass_top_rounded : Icons.print_outlined,
           filled: false,
           enabled: _composite != null && !_isPrinting,
           onTap: _print,
@@ -571,8 +572,9 @@ class _PreviewScreenState extends State<PreviewScreen>
 
     return Container(
       color: _C.bg,
-      padding:
-          compact ? const EdgeInsets.all(24) : const EdgeInsets.fromLTRB(32, 48, 32, 40),
+      padding: compact
+          ? const EdgeInsets.all(24)
+          : const EdgeInsets.fromLTRB(32, 48, 32, 40),
       child: compact ? SingleChildScrollView(child: content) : content,
     );
   }

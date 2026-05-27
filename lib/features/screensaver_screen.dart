@@ -51,15 +51,12 @@ class _ScreensaverScreenState extends State<ScreensaverScreen> {
     final provider = context.read<PhotoboothProvider>();
     final controller = _controller;
 
-    // 立即切换页面，不等待任何操作
     provider.goToHomepage();
 
-    // 在完全独立的异步任务中释放资源，不阻塞主线程
     _releaseVideoInBackground(controller);
   }
 
   void _releaseVideoInBackground(VideoPlayerController? controller) {
-    // 使用 Future 在后台释放，不等待
     unawaited(
       Future(() async {
         try {

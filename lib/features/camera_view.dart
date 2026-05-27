@@ -329,8 +329,8 @@ class CameraViewState extends State<CameraView>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               decoration: BoxDecoration(
-                border:
-                    Border.all(color: const Color(0xFF4A4638).withValues(alpha: 0.2)),
+                border: Border.all(
+                    color: const Color(0xFF4A4638).withValues(alpha: 0.2)),
                 borderRadius: BorderRadius.circular(3),
                 color: const Color(0xFFFFFFEA).withValues(alpha: 0.75),
               ),
@@ -576,15 +576,15 @@ class _TemplateSlotView extends StatelessWidget {
             margin: const EdgeInsets.symmetric(horizontal: 4),
             width: current ? 24 : 8,
             height: 8,
-              decoration: BoxDecoration(
-                color: done
-                    ? const Color(0xFFD9B87C)
-                    : current
-                        ? const Color(0xFF4A4638)
-                        : const Color(0xFF4A4638).withValues(alpha: 0.25),
-                borderRadius: BorderRadius.circular(4),
-              ),
-            );
+            decoration: BoxDecoration(
+              color: done
+                  ? const Color(0xFFD9B87C)
+                  : current
+                      ? const Color(0xFF4A4638)
+                      : const Color(0xFF4A4638).withValues(alpha: 0.25),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          );
         }),
       ),
     );

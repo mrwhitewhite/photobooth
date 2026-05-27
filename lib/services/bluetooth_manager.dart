@@ -136,16 +136,13 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
     }
   }
 
-  // Helper method to parse ugly native codes into friendly text
   String _parseBluetoothError(String rawError) {
     final lowerError = rawError.toLowerCase();
 
-    // Check for common SDK error snippets indicating Bluetooth is turned off
     if (lowerError.contains('disabled') ||
         lowerError.contains('off') ||
         lowerError.contains('not enabled') ||
         lowerError.contains('status 11')) {
-      // 11 is a common native code for BT off
       return 'Bluetooth is turned off. Please enable it in your settings.';
     }
 
@@ -157,7 +154,6 @@ class _BluetoothPickerDialogState extends State<_BluetoothPickerDialog> {
       return 'Location services are required to scan for printers.';
     }
 
-    // Fallback to a cleaner fallback string, or the raw error if you still need it for debugging
     return 'Could not start scan. Make sure Bluetooth is turned on.';
   }
 

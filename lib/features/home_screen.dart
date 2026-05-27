@@ -369,21 +369,21 @@ class _ChooseButtonState extends State<_ChooseButton>
                   : [],
             ),
             alignment: Alignment.center,
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'CHOOSE THIS LAYOUT',
-                        style: TextStyle(
-                          fontFamily: 'CHAOS16',
-                          fontSize: 13,
-                          letterSpacing: 4,
-                          fontWeight: FontWeight.w700,
-                          color: _C.text,
-                        ),
-                      )
-                    ],
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'CHOOSE THIS LAYOUT',
+                  style: TextStyle(
+                    fontFamily: 'CHAOS16',
+                    fontSize: 13,
+                    letterSpacing: 4,
+                    fontWeight: FontWeight.w700,
+                    color: _C.text,
                   ),
+                )
+              ],
+            ),
           ),
         ),
       ),

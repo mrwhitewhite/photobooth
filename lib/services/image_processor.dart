@@ -70,9 +70,6 @@ class ImageProcessor {
       final double slotW = slot.w * canvasW;
       final double slotH = slot.h * canvasH;
 
-      // Step 1: Center-crop the photo to match the slot's aspect ratio exactly.
-      // This avoids any negative offsets in compositeImage (which can misbehave
-      // in the Dart image package and leave white gaps).
       final double srcAspect = photoImg.width / photoImg.height;
       final double dstAspect = slotW / slotH;
 
@@ -80,12 +77,10 @@ class ImageProcessor {
       int cropW = photoImg.width, cropH = photoImg.height;
 
       if (srcAspect > dstAspect) {
-        // Photo is wider than slot → trim left/right
         cropH = photoImg.height;
         cropW = (cropH * dstAspect).round().clamp(1, photoImg.width);
         cropX = ((photoImg.width - cropW) / 2).round();
       } else {
-        // Photo is taller than slot → trim top/bottom
         cropW = photoImg.width;
         cropH = (cropW / dstAspect).round().clamp(1, photoImg.height);
         cropY = ((photoImg.height - cropH) / 2).round();
@@ -99,7 +94,6 @@ class ImageProcessor {
         height: cropH,
       );
 
-      // Step 2: Resize the cropped photo to exactly fill the slot.
       final resized = img.copyResize(
         cropped,
         width: slotW.round(),
@@ -107,7 +101,6 @@ class ImageProcessor {
         interpolation: img.Interpolation.linear,
       );
 
-      // Step 3: Place directly onto the canvas — always at positive coordinates.
       img.compositeImage(
         canvas,
         resized,

@@ -182,37 +182,37 @@ class _SavedPrinterBadgeState extends State<_SavedPrinterBadge> {
 
     return GestureDetector(
       onTap: widget.onChangePrinter,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF7F3D6).withValues(alpha: 0.9),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFD9B87C), width: 1),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.bluetooth_connected,
-                  color: Color(0xFFD9B87C), size: 14),
-              const SizedBox(width: 6),
-              Text(
-                _savedName!,
-                style: const TextStyle(
-                  color: Color(0xFFD9B87C),
-                  fontSize: 12,
-                  fontFamily: 'PoppinsMedium',
-                ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF7F3D6).withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFD9B87C), width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.bluetooth_connected,
+                color: Color(0xFFD9B87C), size: 14),
+            const SizedBox(width: 6),
+            Text(
+              _savedName!,
+              style: const TextStyle(
+                color: Color(0xFFD9B87C),
+                fontSize: 12,
+                fontFamily: 'PoppinsMedium',
               ),
-              const SizedBox(width: 8),
-              const Text(
-                'Change',
-                style: TextStyle(
-                  color: Color(0xFF7B7561),
-                  fontSize: 11,
-                  decoration: TextDecoration.underline,
-                  decorationColor: Color(0xFF7B7561),
-                ),
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'Change',
+              style: TextStyle(
+                color: Color(0xFF7B7561),
+                fontSize: 11,
+                decoration: TextDecoration.underline,
+                decorationColor: Color(0xFF7B7561),
               ),
+            ),
           ],
         ),
       ),

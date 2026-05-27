@@ -63,11 +63,8 @@ class _AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state =
-        context.select<PhotoboothProvider, AppState>((p) => p.state);
+    final state = context.select<PhotoboothProvider, AppState>((p) => p.state);
 
-    // ── Screensaver + Homepage ───────────────────────────────────────
-    // 两个页面同时保持在后台渲染（IndexedStack），切换瞬间完成，无黑屏
     if (state == AppState.screensaver || state == AppState.homepage) {
       return IndexedStack(
         index: state == AppState.screensaver ? 0 : 1,
@@ -78,16 +75,12 @@ class _AppShell extends StatelessWidget {
       );
     }
 
-    // ── Layout / Camera / Preview ────────────────────────────────────
-    // 使用 AnimatedSwitcher：旧页面元素保持存活（避免 CameraView 重复初始化），
-    // 新页面从下方滑入覆盖，旧页面保持全不透明（无黑屏）
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 450),
       switchInCurve: Curves.easeOut,
       transitionBuilder: (child, animation) {
         final isIncoming = child.key == _keyForState(state);
         if (isIncoming) {
-          // 新页面：淡入 + 向上滑入
           return FadeTransition(
             opacity: animation,
             child: SlideTransition(
@@ -100,14 +93,13 @@ class _AppShell extends StatelessWidget {
             ),
           );
         }
-        // 旧页面：保持全不透明，不做任何动画，新页面在上方滑入
+
         return child;
       },
       child: _screenForState(state),
     );
   }
 
-  /// 用于判断 transitionBuilder 中哪个 child 是"新进入"的
   ValueKey<String> _keyForState(AppState state) {
     return switch (state) {
       AppState.screensaver => const ValueKey('screensaver'),
@@ -122,13 +114,10 @@ class _AppShell extends StatelessWidget {
     return switch (state) {
       AppState.screensaver =>
         const ScreensaverScreen(key: ValueKey('screensaver')),
-      AppState.homepage =>
-        const HomepageScreen(key: ValueKey('homepage')),
-      AppState.layoutSelect =>
-        const HomeScreen(key: ValueKey('layout')),
+      AppState.homepage => const HomepageScreen(key: ValueKey('homepage')),
+      AppState.layoutSelect => const HomeScreen(key: ValueKey('layout')),
       AppState.camera => const CameraView(key: ValueKey('camera')),
-      AppState.preview =>
-        const PreviewScreen(key: ValueKey('preview')),
+      AppState.preview => const PreviewScreen(key: ValueKey('preview')),
     };
   }
 }
