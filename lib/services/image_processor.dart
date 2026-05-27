@@ -70,44 +70,47 @@ class ImageProcessor {
       final double slotW = slot.w * canvasW;
       final double slotH = slot.h * canvasH;
 
-      final fit = _shouldCoverFit(layout)
-          ? _coverFit(
-              photoImg.width.toDouble(),
-              photoImg.height.toDouble(),
-              slotW,
-              slotH,
-            )
-          : _containFit(
-              photoImg.width.toDouble(),
-              photoImg.height.toDouble(),
-              slotW,
-              slotH,
-            );
+      // Step 1: Center-crop the photo to match the slot's aspect ratio exactly.
+      // This avoids any negative offsets in compositeImage (which can misbehave
+      // in the Dart image package and leave white gaps).
+      final double srcAspect = photoImg.width / photoImg.height;
+      final double dstAspect = slotW / slotH;
 
-      final resized = img.copyResize(
+      int cropX = 0, cropY = 0;
+      int cropW = photoImg.width, cropH = photoImg.height;
+
+      if (srcAspect > dstAspect) {
+        // Photo is wider than slot → trim left/right
+        cropH = photoImg.height;
+        cropW = (cropH * dstAspect).round().clamp(1, photoImg.width);
+        cropX = ((photoImg.width - cropW) / 2).round();
+      } else {
+        // Photo is taller than slot → trim top/bottom
+        cropW = photoImg.width;
+        cropH = (cropW / dstAspect).round().clamp(1, photoImg.height);
+        cropY = ((photoImg.height - cropH) / 2).round();
+      }
+
+      final cropped = img.copyCrop(
         photoImg,
-        width: fit.width.round(),
-        height: fit.height.round(),
+        x: cropX,
+        y: cropY,
+        width: cropW,
+        height: cropH,
+      );
+
+      // Step 2: Resize the cropped photo to exactly fill the slot.
+      final resized = img.copyResize(
+        cropped,
+        width: slotW.round(),
+        height: slotH.round(),
         interpolation: img.Interpolation.linear,
       );
 
-      final slotCanvas = img.Image(
-        width: slotW.round(),
-        height: slotH.round(),
-        numChannels: 4,
-      );
-      img.fill(slotCanvas, color: img.ColorUint8.rgba(0, 0, 0, 0));
-      img.compositeImage(
-        slotCanvas,
-        resized,
-        dstX: fit.offsetX.round(),
-        dstY: fit.offsetY.round(),
-        blend: img.BlendMode.alpha,
-      );
-
+      // Step 3: Place directly onto the canvas — always at positive coordinates.
       img.compositeImage(
         canvas,
-        slotCanvas,
+        resized,
         dstX: slotX.round(),
         dstY: slotY.round(),
         blend: img.BlendMode.alpha,
@@ -131,62 +134,6 @@ class ImageProcessor {
       throw const ImageProcessorException('Failed to decode image bytes.');
     }
     return decoded;
-  }
-
-  static _FitResult _containFit(
-    double srcW,
-    double srcH,
-    double dstW,
-    double dstH,
-  ) {
-    final srcAspect = srcW / srcH;
-    final dstAspect = dstW / dstH;
-    double width, height;
-    if (srcAspect > dstAspect) {
-      width = dstW;
-      height = dstW / srcAspect;
-    } else {
-      height = dstH;
-      width = dstH * srcAspect;
-    }
-    final offsetX = (dstW - width) / 2;
-    final offsetY = (dstH - height) / 2;
-    return _FitResult(
-      offsetX: offsetX,
-      offsetY: offsetY,
-      width: width,
-      height: height,
-    );
-  }
-
-  static _FitResult _coverFit(
-    double srcW,
-    double srcH,
-    double dstW,
-    double dstH,
-  ) {
-    final srcAspect = srcW / srcH;
-    final dstAspect = dstW / dstH;
-    double width, height;
-    if (srcAspect > dstAspect) {
-      height = dstH;
-      width = dstH * srcAspect;
-    } else {
-      width = dstW;
-      height = dstW / srcAspect;
-    }
-    final offsetX = (dstW - width) / 2;
-    final offsetY = (dstH - height) / 2;
-    return _FitResult(
-      offsetX: offsetX,
-      offsetY: offsetY,
-      width: width,
-      height: height,
-    );
-  }
-
-  static bool _shouldCoverFit(PhotoLayout layout) {
-    return layout == PhotoLayout.layout2x2 || layout == PhotoLayout.layout3x1;
   }
 
   static Future<void> downloadFile(Uint8List bytes, String filename) async {
