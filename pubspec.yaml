@@ -46,7 +46,7 @@ flutter:
     - assets/layout/3x1.png
     - assets/layout/4x2.png
     - assets/video/start_video.mp4
-    - assets/video/start_video.mp4
+    - assets/video/homepage_vid.mp4
 
   fonts:
     - family: CHAOS16

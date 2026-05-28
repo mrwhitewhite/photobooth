@@ -45,7 +45,7 @@ class _HomepageScreenState extends State<HomepageScreen>
   void _initVideo() {
     if (!mounted) return;
     _videoController =
-        VideoPlayerController.asset('assets/screen_saver/screen_saver_1.mp4')
+        VideoPlayerController.asset('assets/video/homepage_vid.mp4')
           ..setLooping(true)
           ..setVolume(0)
           ..initialize().then((_) {
