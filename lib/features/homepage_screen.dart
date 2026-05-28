@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:video_player/video_player.dart';
 
 import '../services/bluetooth_manager.dart';
 import '../services/photobooth_provider.dart';
@@ -13,10 +14,12 @@ class HomepageScreen extends StatefulWidget {
 }
 
 class _HomepageScreenState extends State<HomepageScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _ctrl;
   late Animation<double> _fadeIn;
   late Animation<double> _slideUp;
+  VideoPlayerController? _videoController;
+  bool _videoReady = false;
 
   @override
   void initState() {
@@ -27,11 +30,27 @@ class _HomepageScreenState extends State<HomepageScreen>
     _slideUp = Tween<double>(begin: 40, end: 0)
         .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
     _ctrl.forward();
+
+    // 初始化视频背景
+    _videoController =
+        VideoPlayerController.asset('assets/screen_saver/screen_saver_1.mp4')
+          ..setLooping(true)
+          ..setVolume(0)
+          ..initialize().then((_) {
+            if (!mounted) return;
+            _videoController!.play();
+            setState(() {
+              _videoReady = true;
+            });
+          }).catchError((_) {
+            if (mounted) setState(() {});
+          });
   }
 
   @override
   void dispose() {
     _ctrl.dispose();
+    _videoController?.dispose();
     super.dispose();
   }
 
@@ -81,12 +100,27 @@ class _HomepageScreenState extends State<HomepageScreen>
     return Stack(
       fit: StackFit.expand,
       children: [
-        Positioned.fill(
-          child: Image.asset(
-            'assets/homepage.png',
-            fit: BoxFit.cover,
-          ),
+        // 永久底色，避免视频初始化前闪烁
+        const Positioned.fill(
+          child: ColoredBox(color: Color(0xFFFFFFEA)),
         ),
+        // 视频就绪后用 AnimatedOpacity 平滑淡入，不突然 pop
+        if (_videoController != null &&
+            _videoController!.value.isInitialized)
+          Positioned.fill(
+            child: AnimatedOpacity(
+              opacity: _videoReady ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 400),
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: _videoController!.value.size.width,
+                  height: _videoController!.value.size.height,
+                  child: VideoPlayer(_videoController!),
+                ),
+              ),
+            ),
+          ),
         Positioned(
           bottom: 0,
           left: 0,

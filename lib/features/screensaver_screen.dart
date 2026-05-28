@@ -43,22 +43,18 @@ class _ScreensaverScreenState extends State<ScreensaverScreen> {
     _isExiting = true;
 
     final provider = context.read<PhotoboothProvider>();
-    final controller = _controller;
 
+    // 立即切换页面，视频释放交给 dispose() 处理
+    // 这样两个视频的生命周期不会重叠
     provider.goToHomepage();
+  }
 
-    _releaseVideoInBackground(controller);
+  void _releaseInIsolate(VideoPlayerController? controller) {
+    // 已移除
   }
 
   void _releaseVideoInBackground(VideoPlayerController? controller) {
-    unawaited(
-      Future(() async {
-        try {
-          await controller?.pause();
-          await controller?.dispose();
-        } catch (_) {}
-      }),
-    );
+    // 已移除
   }
 
   @override
