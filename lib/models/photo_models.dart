@@ -72,14 +72,14 @@ enum PhotoLayout {
             LayoutSlot(0.0599, 0.6300, 0.8815, 0.2455),
           ],
         PhotoLayout.layout4x2 => const [
-            LayoutSlot(0.0261, 0.0945, 0.4605, 0.1834),
-            LayoutSlot(0.5130, 0.0945, 0.4626, 0.1834),
-            LayoutSlot(0.0261, 0.2916, 0.4605, 0.1866),
-            LayoutSlot(0.5130, 0.2916, 0.4626, 0.1866),
-            LayoutSlot(0.0261, 0.4919, 0.4605, 0.1864),
-            LayoutSlot(0.5130, 0.4919, 0.4626, 0.1864),
-            LayoutSlot(0.0261, 0.6922, 0.4605, 0.1837),
-            LayoutSlot(0.5137, 0.6922, 0.4619, 0.1837),
+            LayoutSlot(0.084, 0.076, 0.344, 0.202), // Row 1, Left
+            LayoutSlot(0.084, 0.291, 0.344, 0.202), // Row 2, Left
+            LayoutSlot(0.084, 0.506, 0.344, 0.202), // Row 3, Left
+            LayoutSlot(0.084, 0.721, 0.344, 0.202), // Row 4, Left
+            LayoutSlot(0.572, 0.076, 0.344, 0.202), // Row 1, Right
+            LayoutSlot(0.572, 0.291, 0.344, 0.202), // Row 2, Right
+            LayoutSlot(0.572, 0.506, 0.344, 0.202), // Row 3, Right
+            LayoutSlot(0.572, 0.721, 0.344, 0.202), // Row 4, Right
           ],
       };
 }
