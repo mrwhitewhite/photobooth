@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
@@ -31,7 +32,15 @@ class _HomepageScreenState extends State<HomepageScreen>
         .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
     _ctrl.forward();
 
-    // 初始化视频背景
+    // 延迟 500ms 再初始化视频：
+    // AnimatedSwitcher 过渡时长为 450ms，在这段时间内
+    // ScreensaverScreen 仍在树中且视频未 dispose。
+    // 等过渡结束后再加载，避免两个视频同时争用解码器资源。
+    Future.delayed(const Duration(milliseconds: 500), _initVideo);
+  }
+
+  void _initVideo() {
+    if (!mounted) return;
     _videoController =
         VideoPlayerController.asset('assets/screen_saver/screen_saver_1.mp4')
           ..setLooping(true)

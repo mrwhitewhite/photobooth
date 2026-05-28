@@ -42,10 +42,10 @@ class _ScreensaverScreenState extends State<ScreensaverScreen> {
     if (_isExiting) return;
     _isExiting = true;
 
-    final provider = context.read<PhotoboothProvider>();
+    // 立刻 pause：释放解码器，避免与 homepage 视频抢资源
+    _controller?.pause();
 
-    // 立即切换页面，视频释放交给 dispose() 处理
-    // 这样两个视频的生命周期不会重叠
+    final provider = context.read<PhotoboothProvider>();
     provider.goToHomepage();
   }
 
