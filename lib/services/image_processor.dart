@@ -59,56 +59,6 @@ class ImageProcessor {
       height: canvas.height,
       interpolation: img.Interpolation.linear,
     );
-    final slots = layout.slots;
-
-    for (int i = 0; i < photos.length && i < slots.length; i++) {
-      final slot = slots[i];
-      final photoImg = await _loadBytesImage(photos[i]);
-
-      final double slotX = slot.x * canvasW;
-      final double slotY = slot.y * canvasH;
-      final double slotW = slot.w * canvasW;
-      final double slotH = slot.h * canvasH;
-
-      final double srcAspect = photoImg.width / photoImg.height;
-      final double dstAspect = slotW / slotH;
-
-      int cropX = 0, cropY = 0;
-      int cropW = photoImg.width, cropH = photoImg.height;
-
-      if (srcAspect > dstAspect) {
-        cropH = photoImg.height;
-        cropW = (cropH * dstAspect).round().clamp(1, photoImg.width);
-        cropX = ((photoImg.width - cropW) / 2).round();
-      } else {
-        cropW = photoImg.width;
-        cropH = (cropW / dstAspect).round().clamp(1, photoImg.height);
-        cropY = ((photoImg.height - cropH) / 2).round();
-      }
-
-      final cropped = img.copyCrop(
-        photoImg,
-        x: cropX,
-        y: cropY,
-        width: cropW,
-        height: cropH,
-      );
-
-      final resized = img.copyResize(
-        cropped,
-        width: slotW.round(),
-        height: slotH.round(),
-        interpolation: img.Interpolation.linear,
-      );
-
-      img.compositeImage(
-        canvas,
-        resized,
-        dstX: slotX.round(),
-        dstY: slotY.round(),
-        blend: img.BlendMode.alpha,
-      );
-    }
 
     img.compositeImage(
       canvas,
@@ -117,6 +67,58 @@ class ImageProcessor {
       dstY: 0,
       blend: img.BlendMode.alpha,
     );
+
+    final slotGroups = layout.slots;
+
+    for (int i = 0; i < photos.length && i < slotGroups.length; i++) {
+      final photoImg = await _loadBytesImage(photos[i]);
+
+      for (final slot in slotGroups[i]) {
+        final double slotX = slot.x * canvasW;
+        final double slotY = slot.y * canvasH;
+        final double slotW = slot.w * canvasW;
+        final double slotH = slot.h * canvasH;
+
+        final double srcAspect = photoImg.width / photoImg.height;
+        final double dstAspect = slotW / slotH;
+
+        int cropX = 0, cropY = 0;
+        int cropW = photoImg.width, cropH = photoImg.height;
+
+        if (srcAspect > dstAspect) {
+          cropH = photoImg.height;
+          cropW = (cropH * dstAspect).round().clamp(1, photoImg.width);
+          cropX = ((photoImg.width - cropW) / 2).round();
+        } else {
+          cropW = photoImg.width;
+          cropH = (cropW / dstAspect).round().clamp(1, photoImg.height);
+          cropY = ((photoImg.height - cropH) / 2).round();
+        }
+
+        final cropped = img.copyCrop(
+          photoImg,
+          x: cropX,
+          y: cropY,
+          width: cropW,
+          height: cropH,
+        );
+
+        final resized = img.copyResize(
+          cropped,
+          width: slotW.round(),
+          height: slotH.round(),
+          interpolation: img.Interpolation.linear,
+        );
+
+        img.compositeImage(
+          canvas,
+          resized,
+          dstX: slotX.round(),
+          dstY: slotY.round(),
+          blend: img.BlendMode.alpha,
+        );
+      }
+    }
 
     return Uint8List.fromList(img.encodePng(canvas));
   }

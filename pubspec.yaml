@@ -1,5 +1,5 @@
-name: myreceipt
-description: "A Flutter Android Photobooth"
+name: i_snap_you
+description: "A Flutter Android Photobooth - i snap you"
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -40,11 +40,12 @@ flutter:
   assets:
     - assets/homepage.png
     - assets/layout_selection.png
-    - assets/layout/1x1.png
-    - assets/layout/2x1_camera.png
-    - assets/layout/2x2.PNG
-    - assets/layout/3x1.png
-    - assets/layout/4x2.png
+    - assets/layout/1x1.jpeg
+    - assets/layout/2x1_camera.jpeg
+    - assets/layout/2x2.png
+    - assets/layout/3x1.jpeg
+    - assets/layout/4x2_narrow.jpeg
+    - assets/layout/4x2_wide.jpeg
     - assets/video/start_video.mp4
     - assets/video/homepage_vid.mp4
 
@@ -56,3 +57,6 @@ flutter:
       fonts:
         - asset: assets/fonts/Poppins-Medium.ttf
           weight: 500
+    - family: Rascal
+      fonts:
+        - asset: assets\fonts\RASCAL.TTF

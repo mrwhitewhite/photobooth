@@ -9,7 +9,7 @@ class _C {
   static const border = Color(0xFFE5DFC1);
   static const accent = Color(0xFFD9B87C);
   static const text = Color(0xFF4A4638);
-  static const muted = Color(0xFF7B7561);
+  static const muted = Color.fromARGB(255, 71, 68, 56);
 }
 
 class HomeScreen extends StatefulWidget {
@@ -95,31 +95,27 @@ class _Header extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'SELECT YOUR FORMAT',
-                style: TextStyle(
-                  fontFamily: 'CHAOS16',
-                  fontSize: 10,
-                  letterSpacing: 5,
-                  color: _C.accent,
-                  fontWeight: FontWeight.w400,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: 10),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Select a Layout',
+                    style: TextStyle(
+                      fontFamily: 'Rascal',
+                      fontSize: 48,
+                      fontWeight: FontWeight.w300,
+                      color: _C.text,
+                      height: 1.0,
+                    ),
+                  ),
                 ),
-              ),
-              SizedBox(height: 10),
-              Text(
-                'Choose a Layout',
-                style: TextStyle(
-                  fontFamily: 'CHAOS16',
-                  fontSize: 48,
-                  fontWeight: FontWeight.w300,
-                  color: _C.text,
-                  height: 1.0,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -137,24 +133,31 @@ class _LayoutPreview extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 24),
       child: Column(
         children: [
-          Text(
-            layout.label.toUpperCase(),
-            style: const TextStyle(
-              fontFamily: 'CHAOS16',
-              fontSize: 14,
-              letterSpacing: 4,
-              color: _C.text,
-              fontWeight: FontWeight.w600,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              layout.label.toUpperCase(),
+              style: const TextStyle(
+                fontFamily: 'Rascal',
+                fontSize: 14,
+                letterSpacing: 4,
+                color: _C.text,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            layout.subtitle,
-            style: const TextStyle(
-              fontFamily: 'CHAOS16',
-              fontSize: 16,
-              fontStyle: FontStyle.italic,
-              color: _C.muted,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              layout.subtitle,
+              style: const TextStyle(
+                fontFamily: 'Rascal',
+                fontSize: 16,
+                fontStyle: FontStyle.italic,
+                color: _C.muted,
+                fontWeight: FontWeight.w400,
+              ),
             ),
           ),
           const SizedBox(height: 6),
@@ -167,10 +170,11 @@ class _LayoutPreview extends StatelessWidget {
             child: Text(
               '${layout.photoCount} PHOTOS',
               style: const TextStyle(
-                fontFamily: 'CHAOS16',
+                fontFamily: 'Rascal',
                 fontSize: 10,
                 letterSpacing: 2,
                 color: _C.accent,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ),
@@ -363,20 +367,18 @@ class _ChooseButtonState extends State<_ChooseButton>
                   : [],
             ),
             alignment: Alignment.center,
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'CHOOSE THIS LAYOUT',
-                  style: TextStyle(
-                    fontFamily: 'CHAOS16',
-                    fontSize: 13,
-                    letterSpacing: 4,
-                    fontWeight: FontWeight.w700,
-                    color: _C.text,
-                  ),
-                )
-              ],
+            child: const FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'SELECT THIS',
+                style: TextStyle(
+                  fontFamily: 'Rascal',
+                  fontSize: 13,
+                  letterSpacing: 4,
+                  fontWeight: FontWeight.w700,
+                  color: _C.text,
+                ),
+              ),
             ),
           ),
         ),

@@ -488,9 +488,9 @@ class _PreviewScreenState extends State<PreviewScreen>
         Text(
           'Preview',
           style: TextStyle(
-            fontFamily: 'CHAOS16',
+            fontFamily: 'Rascal',
             fontSize: compact ? 36 : 48,
-            fontWeight: FontWeight.w300,
+            fontWeight: FontWeight.w600,
             fontStyle: FontStyle.italic,
             color: _C.text,
             height: 1.0,
@@ -506,17 +506,19 @@ class _PreviewScreenState extends State<PreviewScreen>
         Text(
           provider.selectedLayout.label,
           style: const TextStyle(
-            fontFamily: 'CHAOS16',
+            fontFamily: 'Rascal',
             fontSize: 20,
             color: _C.muted,
+            fontWeight: FontWeight.w600,
           ),
         ),
         Text(
           '${provider.capturedCount} photos captured',
           style: const TextStyle(
-            fontFamily: 'CHAOS16',
+            fontFamily: 'Rascal',
             fontSize: 20,
             color: _C.muted,
+            fontWeight: FontWeight.w600,
           ),
         ),
         if (provider.allPhotos.isNotEmpty) ...[

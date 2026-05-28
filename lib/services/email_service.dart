@@ -7,7 +7,7 @@ class EmailService {
   static const int _smtpPort = 587;
   static const String _senderEmail = 'wuongzize5@gmail.com';
   static const String _senderPassword = 'rfxbmzcoshvpylwo';
-  static const String _senderName = 'MyReceipt Photobooth';
+  static const String _senderName = 'i snap you';
 
   static Future<void> sendPhoto({
     required String recipientEmail,
@@ -33,7 +33,7 @@ class EmailService {
         <div style="font-family:sans-serif;max-width:520px;margin:auto;">
           <h2 style="color:#E8C8A0;">Your Photobooth Photo 📸</h2>
           <p>Here is your photo from the photobooth. Find it attached below!</p>
-          <p style="color:#888;">Thank you for using <strong>MyReceipt Photobooth</strong>.</p>
+          <p style="color:#888;">Thank you for using <strong>"i snap you" Photobooth</strong>.</p>
         </div>
       '''
       ..attachments.add(

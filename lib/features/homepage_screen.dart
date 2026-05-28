@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
@@ -22,6 +23,8 @@ class _HomepageScreenState extends State<HomepageScreen>
   VideoPlayerController? _videoController;
   bool _videoReady = false;
 
+  final ValueNotifier<String?> _savedPrinterName = ValueNotifier<String?>(null);
+
   @override
   void initState() {
     super.initState();
@@ -31,11 +34,18 @@ class _HomepageScreenState extends State<HomepageScreen>
     _slideUp = Tween<double>(begin: 40, end: 0)
         .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
 
+    _loadInitialPrinter();
+
     Future.delayed(const Duration(milliseconds: 460), () {
       if (mounted) _ctrl.forward();
     });
 
     Future.delayed(const Duration(milliseconds: 760), _initVideo);
+  }
+
+  Future<void> _loadInitialPrinter() async {
+    final saved = await BluetoothManager.getSavedDevice();
+    _savedPrinterName.value = saved?.name;
   }
 
   void _initVideo() {
@@ -59,10 +69,19 @@ class _HomepageScreenState extends State<HomepageScreen>
   void dispose() {
     _ctrl.dispose();
     _videoController?.dispose();
+    _savedPrinterName.dispose();
     super.dispose();
   }
 
   Future<void> _handleStart() async {
+    if (kDebugMode) {
+      debugPrint('Debug mode active: Bypassing Bluetooth checks.');
+      if (mounted) {
+        context.read<PhotoboothProvider>().goToLayoutSelect();
+      }
+      return;
+    }
+
     try {
       await PrinterService.ensureBluetoothPermissions();
     } catch (e) {
@@ -91,6 +110,7 @@ class _HomepageScreenState extends State<HomepageScreen>
     }
 
     await BluetoothManager.saveDevice(chosen.id, chosen.name);
+    _savedPrinterName.value = chosen.name;
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -100,6 +120,23 @@ class _HomepageScreenState extends State<HomepageScreen>
         ),
       );
       context.read<PhotoboothProvider>().goToLayoutSelect();
+    }
+  }
+
+  Future<void> _showChangePrinterDialog() async {
+    final chosen = await BluetoothManager.showPickerDialog(context);
+    if (chosen == null) return;
+
+    await BluetoothManager.saveDevice(chosen.id, chosen.name);
+    _savedPrinterName.value = chosen.name;
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Printer changed to "${chosen.name}".'),
+          backgroundColor: const Color(0xFFF7F3D6),
+        ),
+      );
     }
   }
 
@@ -160,7 +197,15 @@ class _HomepageScreenState extends State<HomepageScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _SavedPrinterBadge(onChangePrinter: _showChangePrinterDialog),
+                ValueListenableBuilder<String?>(
+                  valueListenable: _savedPrinterName,
+                  builder: (context, name, _) {
+                    return _SavedPrinterBadge(
+                      savedName: name,
+                      onChangePrinter: _showChangePrinterDialog,
+                    );
+                  },
+                ),
                 const SizedBox(height: 40),
                 _StartButton(onTap: _handleStart),
               ],
@@ -170,51 +215,23 @@ class _HomepageScreenState extends State<HomepageScreen>
       ],
     );
   }
-
-  Future<void> _showChangePrinterDialog() async {
-    final chosen = await BluetoothManager.showPickerDialog(context);
-    if (chosen == null) return;
-    await BluetoothManager.saveDevice(chosen.id, chosen.name);
-    if (mounted) {
-      setState(() {});
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Printer changed to "${chosen.name}".'),
-          backgroundColor: const Color(0xFFF7F3D6),
-        ),
-      );
-    }
-  }
 }
 
-class _SavedPrinterBadge extends StatefulWidget {
+class _SavedPrinterBadge extends StatelessWidget {
+  final String? savedName;
   final VoidCallback onChangePrinter;
-  const _SavedPrinterBadge({required this.onChangePrinter});
 
-  @override
-  State<_SavedPrinterBadge> createState() => _SavedPrinterBadgeState();
-}
-
-class _SavedPrinterBadgeState extends State<_SavedPrinterBadge> {
-  String? _savedName;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final saved = await BluetoothManager.getSavedDevice();
-    if (mounted) setState(() => _savedName = saved?.name);
-  }
+  const _SavedPrinterBadge({
+    required this.savedName,
+    required this.onChangePrinter,
+  });
 
   @override
   Widget build(BuildContext context) {
-    if (_savedName == null) return const SizedBox.shrink();
+    if (savedName == null) return const SizedBox.shrink();
 
     return GestureDetector(
-      onTap: widget.onChangePrinter,
+      onTap: onChangePrinter,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
@@ -229,7 +246,7 @@ class _SavedPrinterBadgeState extends State<_SavedPrinterBadge> {
                 color: Color(0xFFD9B87C), size: 14),
             const SizedBox(width: 6),
             Text(
-              _savedName!,
+              savedName!,
               style: const TextStyle(
                 color: Color(0xFFD9B87C),
                 fontSize: 12,
@@ -283,38 +300,41 @@ class _StartButtonState extends State<_StartButton>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => _ctrl.forward(),
-      onTapUp: (_) {
-        _ctrl.reverse();
-        widget.onTap();
-      },
-      onTapCancel: () => _ctrl.reverse(),
-      child: ScaleTransition(
-        scale: _scale,
-        child: Container(
-          width: 220,
-          height: 64,
-          decoration: BoxDecoration(
-            color: const Color(0xFFEADFC3),
-            border: Border.all(color: const Color(0xFF4A4638), width: 4),
-          ),
+    return Material(
+      type: MaterialType.transparency,
+      child: GestureDetector(
+        onTapDown: (_) => _ctrl.forward(),
+        onTapUp: (_) {
+          _ctrl.reverse();
+          widget.onTap();
+        },
+        onTapCancel: () => _ctrl.reverse(),
+        child: ScaleTransition(
+          scale: _scale,
           child: Container(
-            decoration: const BoxDecoration(
-              border: Border(
-                top: BorderSide(color: Color(0xFFFFF6E6), width: 4),
-                left: BorderSide(color: Color(0xFFFFF6E6), width: 4),
-                bottom: BorderSide(color: Color(0xFFC6B895), width: 4),
-                right: BorderSide(color: Color(0xFFC6B895), width: 4),
-              ),
+            width: 220,
+            height: 64,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEADFC3),
+              border: Border.all(color: const Color(0xFF4A4638), width: 4),
             ),
-            child: const Center(
-              child: Text(
-                'Start',
-                style: TextStyle(
-                  fontFamily: 'CHAOS16',
-                  fontSize: 24,
-                  color: Color(0xFF4A4638),
+            child: Container(
+              decoration: const BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: Color(0xFFFFF6E6), width: 4),
+                  left: BorderSide(color: Color(0xFFFFF6E6), width: 4),
+                  bottom: BorderSide(color: Color(0xFFC6B895), width: 4),
+                  right: BorderSide(color: Color(0xFFC6B895), width: 4),
+                ),
+              ),
+              child: const Center(
+                child: Text(
+                  'Start',
+                  style: TextStyle(
+                    fontFamily: 'Rascal',
+                    fontSize: 24,
+                    color: Color(0xFF4A4638),
+                  ),
                 ),
               ),
             ),
