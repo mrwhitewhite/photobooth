@@ -101,7 +101,7 @@ class _Header extends StatelessWidget {
               Text(
                 'SELECT YOUR FORMAT',
                 style: TextStyle(
-                  fontFamily: 'CHAOS16',
+                  fontFamily: 'Rascal',
                   fontSize: 10,
                   letterSpacing: 5,
                   color: _C.accent,
@@ -112,7 +112,7 @@ class _Header extends StatelessWidget {
               Text(
                 'Choose a Layout',
                 style: TextStyle(
-                  fontFamily: 'CHAOS16',
+                  fontFamily: 'Rascal',
                   fontSize: 48,
                   fontWeight: FontWeight.w300,
                   color: _C.text,
@@ -140,7 +140,7 @@ class _LayoutPreview extends StatelessWidget {
           Text(
             layout.label.toUpperCase(),
             style: const TextStyle(
-              fontFamily: 'CHAOS16',
+              fontFamily: 'Rascal',
               fontSize: 14,
               letterSpacing: 4,
               color: _C.text,
@@ -151,7 +151,7 @@ class _LayoutPreview extends StatelessWidget {
           Text(
             layout.subtitle,
             style: const TextStyle(
-              fontFamily: 'CHAOS16',
+              fontFamily: 'Rascal',
               fontSize: 16,
               fontStyle: FontStyle.italic,
               color: _C.muted,
@@ -167,7 +167,7 @@ class _LayoutPreview extends StatelessWidget {
             child: Text(
               '${layout.photoCount} PHOTOS',
               style: const TextStyle(
-                fontFamily: 'CHAOS16',
+                fontFamily: 'Rascal',
                 fontSize: 10,
                 letterSpacing: 2,
                 color: _C.accent,
@@ -369,7 +369,7 @@ class _ChooseButtonState extends State<_ChooseButton>
                 Text(
                   'CHOOSE THIS LAYOUT',
                   style: TextStyle(
-                    fontFamily: 'CHAOS16',
+                    fontFamily: 'Rascal',
                     fontSize: 13,
                     letterSpacing: 4,
                     fontWeight: FontWeight.w700,

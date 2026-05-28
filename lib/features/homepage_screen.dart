@@ -312,7 +312,7 @@ class _StartButtonState extends State<_StartButton>
               child: Text(
                 'Start',
                 style: TextStyle(
-                  fontFamily: 'CHAOS16',
+                  fontFamily: 'Rascal',
                   fontSize: 24,
                   color: Color(0xFF4A4638),
                 ),
