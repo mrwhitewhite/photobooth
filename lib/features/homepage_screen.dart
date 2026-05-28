@@ -283,38 +283,41 @@ class _StartButtonState extends State<_StartButton>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => _ctrl.forward(),
-      onTapUp: (_) {
-        _ctrl.reverse();
-        widget.onTap();
-      },
-      onTapCancel: () => _ctrl.reverse(),
-      child: ScaleTransition(
-        scale: _scale,
-        child: Container(
-          width: 220,
-          height: 64,
-          decoration: BoxDecoration(
-            color: const Color(0xFFEADFC3),
-            border: Border.all(color: const Color(0xFF4A4638), width: 4),
-          ),
+    return Material(
+      type: MaterialType.transparency,
+      child: GestureDetector(
+        onTapDown: (_) => _ctrl.forward(),
+        onTapUp: (_) {
+          _ctrl.reverse();
+          widget.onTap();
+        },
+        onTapCancel: () => _ctrl.reverse(),
+        child: ScaleTransition(
+          scale: _scale,
           child: Container(
-            decoration: const BoxDecoration(
-              border: Border(
-                top: BorderSide(color: Color(0xFFFFF6E6), width: 4),
-                left: BorderSide(color: Color(0xFFFFF6E6), width: 4),
-                bottom: BorderSide(color: Color(0xFFC6B895), width: 4),
-                right: BorderSide(color: Color(0xFFC6B895), width: 4),
-              ),
+            width: 220,
+            height: 64,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEADFC3),
+              border: Border.all(color: const Color(0xFF4A4638), width: 4),
             ),
-            child: const Center(
-              child: Text(
-                'Start',
-                style: TextStyle(
-                  fontFamily: 'Rascal',
-                  fontSize: 24,
-                  color: Color(0xFF4A4638),
+            child: Container(
+              decoration: const BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: Color(0xFFFFF6E6), width: 4),
+                  left: BorderSide(color: Color(0xFFFFF6E6), width: 4),
+                  bottom: BorderSide(color: Color(0xFFC6B895), width: 4),
+                  right: BorderSide(color: Color(0xFFC6B895), width: 4),
+                ),
+              ),
+              child: const Center(
+                child: Text(
+                  'Start',
+                  style: TextStyle(
+                    fontFamily: 'Rascal',
+                    fontSize: 24,
+                    color: Color(0xFF4A4638),
+                  ),
                 ),
               ),
             ),
