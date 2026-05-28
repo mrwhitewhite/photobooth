@@ -59,6 +59,15 @@ class ImageProcessor {
       height: canvas.height,
       interpolation: img.Interpolation.linear,
     );
+
+    img.compositeImage(
+      canvas,
+      templateCanvas,
+      dstX: 0,
+      dstY: 0,
+      blend: img.BlendMode.alpha,
+    );
+
     final slots = layout.slots;
 
     for (int i = 0; i < photos.length && i < slots.length; i++) {
@@ -109,14 +118,6 @@ class ImageProcessor {
         blend: img.BlendMode.alpha,
       );
     }
-
-    img.compositeImage(
-      canvas,
-      templateCanvas,
-      dstX: 0,
-      dstY: 0,
-      blend: img.BlendMode.alpha,
-    );
 
     return Uint8List.fromList(img.encodePng(canvas));
   }
