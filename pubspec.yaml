@@ -56,3 +56,6 @@ flutter:
       fonts:
         - asset: assets/fonts/Poppins-Medium.ttf
           weight: 500
+    - family: Rascal
+      fonts:
+        - asset: assets\fonts\RASCAL.TTF
