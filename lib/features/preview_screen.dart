@@ -490,7 +490,7 @@ class _PreviewScreenState extends State<PreviewScreen>
           style: TextStyle(
             fontFamily: 'Rascal',
             fontSize: compact ? 36 : 48,
-            fontWeight: FontWeight.w300,
+            fontWeight: FontWeight.w600,
             fontStyle: FontStyle.italic,
             color: _C.text,
             height: 1.0,
@@ -509,6 +509,7 @@ class _PreviewScreenState extends State<PreviewScreen>
             fontFamily: 'Rascal',
             fontSize: 20,
             color: _C.muted,
+            fontWeight: FontWeight.w600,
           ),
         ),
         Text(
@@ -517,6 +518,7 @@ class _PreviewScreenState extends State<PreviewScreen>
             fontFamily: 'Rascal',
             fontSize: 20,
             color: _C.muted,
+            fontWeight: FontWeight.w600,
           ),
         ),
         if (provider.allPhotos.isNotEmpty) ...[
