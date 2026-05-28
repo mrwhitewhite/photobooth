@@ -9,7 +9,7 @@ class _C {
   static const border = Color(0xFFE5DFC1);
   static const accent = Color(0xFFD9B87C);
   static const text = Color(0xFF4A4638);
-  static const muted = Color(0xFF7B7561);
+  static const muted = Color.fromARGB(255, 71, 68, 56);
 }
 
 class HomeScreen extends StatefulWidget {
@@ -110,7 +110,7 @@ class _Header extends StatelessWidget {
               ),
               SizedBox(height: 10),
               Text(
-                'Choose a Layout',
+                'Select a Layout',
                 style: TextStyle(
                   fontFamily: 'Rascal',
                   fontSize: 48,
@@ -155,6 +155,7 @@ class _LayoutPreview extends StatelessWidget {
               fontSize: 16,
               fontStyle: FontStyle.italic,
               color: _C.muted,
+              fontWeight: FontWeight.w400,
             ),
           ),
           const SizedBox(height: 6),
@@ -171,6 +172,7 @@ class _LayoutPreview extends StatelessWidget {
                 fontSize: 10,
                 letterSpacing: 2,
                 color: _C.accent,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ),
@@ -367,7 +369,7 @@ class _ChooseButtonState extends State<_ChooseButton>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'CHOOSE THIS LAYOUT',
+                  'SELECT THIS',
                   style: TextStyle(
                     fontFamily: 'Rascal',
                     fontSize: 13,
