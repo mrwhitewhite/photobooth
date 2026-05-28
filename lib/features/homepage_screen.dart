@@ -26,17 +26,20 @@ class _HomepageScreenState extends State<HomepageScreen>
   void initState() {
     super.initState();
     _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 900));
+        vsync: this, duration: const Duration(milliseconds: 800));
     _fadeIn = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
     _slideUp = Tween<double>(begin: 40, end: 0)
         .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
-    _ctrl.forward();
 
-    // 延迟 500ms 再初始化视频：
-    // AnimatedSwitcher 过渡时长为 450ms，在这段时间内
-    // ScreensaverScreen 仍在树中且视频未 dispose。
-    // 等过渡结束后再加载，避免两个视频同时争用解码器资源。
-    Future.delayed(const Duration(milliseconds: 500), _initVideo);
+    // 等待 AnimatedSwitcher 的过渡结束（450ms）后再启动内部动画，
+    // 避免两组动画同时运行导致卡顿。
+    Future.delayed(const Duration(milliseconds: 460), () {
+      if (mounted) _ctrl.forward();
+    });
+
+    // 视频初始化再额外延迟 300ms（总共 ~760ms），
+    // 确保动画已稳定后才加载解码器，彻底避免资源争用。
+    Future.delayed(const Duration(milliseconds: 760), _initVideo);
   }
 
   void _initVideo() {
