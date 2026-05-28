@@ -14,8 +14,8 @@ class LayoutSlot {
 enum PhotoLayout {
   layout1x1,
   layout2x1,
-  layout2x2,
   layout3x1,
+  layout2x2,
   layout4x2Narrow,
   layout4x2Wide;
 
