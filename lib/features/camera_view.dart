@@ -432,8 +432,9 @@ class _TemplateSlotView extends StatelessWidget {
                 child: const _ActiveBorder(),
               ),
           if (countdown > 0 && hasActiveGroup)
-            _buildCountdownOverlay(
-                slotGroups[activeGroupIdx][0], tw, th, offsetX, offsetY),
+            for (final slot in slotGroups[activeGroupIdx])
+              _buildCountdownOverlay(
+                  slot, tw, th, offsetX, offsetY),
           Positioned(
             bottom: 24,
             left: 0,
