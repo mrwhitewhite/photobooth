@@ -1,6 +1,6 @@
-# photobooth
+# "i snap you" photobooth
 
-A new Flutter project.
+A Flutter photo booth application.
 
 ## Getting Started
 

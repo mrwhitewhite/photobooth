@@ -24,7 +24,7 @@ class MyReceiptApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'MyReceipt',
+      title: 'i snap you',
       theme: _buildTheme(),
       home: const _AppShell(),
     );
