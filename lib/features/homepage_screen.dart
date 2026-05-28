@@ -31,14 +31,10 @@ class _HomepageScreenState extends State<HomepageScreen>
     _slideUp = Tween<double>(begin: 40, end: 0)
         .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
 
-    // 等待 AnimatedSwitcher 的过渡结束（450ms）后再启动内部动画，
-    // 避免两组动画同时运行导致卡顿。
     Future.delayed(const Duration(milliseconds: 460), () {
       if (mounted) _ctrl.forward();
     });
 
-    // 视频初始化再额外延迟 300ms（总共 ~760ms），
-    // 确保动画已稳定后才加载解码器，彻底避免资源争用。
     Future.delayed(const Duration(milliseconds: 760), _initVideo);
   }
 
@@ -112,13 +108,10 @@ class _HomepageScreenState extends State<HomepageScreen>
     return Stack(
       fit: StackFit.expand,
       children: [
-        // 永久底色，避免视频初始化前闪烁
         const Positioned.fill(
           child: ColoredBox(color: Color(0xFFFFFFEA)),
         ),
-        // 视频就绪后用 AnimatedOpacity 平滑淡入，不突然 pop
-        if (_videoController != null &&
-            _videoController!.value.isInitialized)
+        if (_videoController != null && _videoController!.value.isInitialized)
           Positioned.fill(
             child: AnimatedOpacity(
               opacity: _videoReady ? 1.0 : 0.0,

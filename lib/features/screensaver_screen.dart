@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:provider/provider.dart';
@@ -42,19 +41,10 @@ class _ScreensaverScreenState extends State<ScreensaverScreen> {
     if (_isExiting) return;
     _isExiting = true;
 
-    // 立刻 pause：释放解码器，避免与 homepage 视频抢资源
     _controller?.pause();
 
     final provider = context.read<PhotoboothProvider>();
     provider.goToHomepage();
-  }
-
-  void _releaseInIsolate(VideoPlayerController? controller) {
-    // 已移除
-  }
-
-  void _releaseVideoInBackground(VideoPlayerController? controller) {
-    // 已移除
   }
 
   @override
