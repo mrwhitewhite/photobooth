@@ -261,9 +261,9 @@ class CameraViewState extends State<CameraView>
           if (_cameraReady)
             _TemplateSlotView(
               layout: layout,
-              slots: slots,
+              slotGroups: slots,
               templateImageSize: _templateImageSize,
-              cameraPreview: _buildCameraPreview(),
+              buildCameraPreview: _buildCameraPreview,
               provider: provider,
               countdown: _countdown,
               countdownAnim: _countdownAnim,
@@ -352,9 +352,9 @@ class CameraViewState extends State<CameraView>
 
 class _TemplateSlotView extends StatelessWidget {
   final PhotoLayout layout;
-  final List<LayoutSlot> slots;
+  final List<List<LayoutSlot>> slotGroups;
   final Size? templateImageSize;
-  final Widget cameraPreview;
+  final Widget Function() buildCameraPreview;
   final PhotoboothProvider provider;
   final int countdown;
   final AnimationController countdownAnim;
@@ -363,9 +363,9 @@ class _TemplateSlotView extends StatelessWidget {
 
   const _TemplateSlotView({
     required this.layout,
-    required this.slots,
+    required this.slotGroups,
     required this.templateImageSize,
-    required this.cameraPreview,
+    required this.buildCameraPreview,
     required this.provider,
     required this.countdown,
     required this.countdownAnim,
@@ -397,16 +397,9 @@ class _TemplateSlotView extends StatelessWidget {
       final offsetX = (screenW - tw) / 2;
       final offsetY = (screenH - th) / 2;
 
-      final activeIndex = provider.capturedCount;
-      final hasActiveSlot =
-          !provider.sessionComplete && activeIndex < slots.length;
-
-      final double camLeft =
-          hasActiveSlot ? offsetX + slots[activeIndex].x * tw : 0;
-      final double camTop =
-          hasActiveSlot ? offsetY + slots[activeIndex].y * th : 0;
-      final double camW = hasActiveSlot ? slots[activeIndex].w * tw : 0;
-      final double camH = hasActiveSlot ? slots[activeIndex].h * th : 0;
+      final activeGroupIdx = provider.capturedCount;
+      final hasActiveGroup =
+          !provider.sessionComplete && activeGroupIdx < slotGroups.length;
 
       return Stack(
         children: [
@@ -417,27 +410,30 @@ class _TemplateSlotView extends StatelessWidget {
             height: th,
             child: Image.asset(layout.templateAsset, fit: BoxFit.fill),
           ),
-          for (int i = 0; i < slots.length; i++)
-            _buildSlotWidget(i, slots[i], tw, th, offsetX, offsetY),
-          if (hasActiveSlot)
-            Positioned(
-              left: camLeft,
-              top: camTop,
-              width: camW,
-              height: camH,
-              child: cameraPreview,
-            ),
-          if (hasActiveSlot)
-            Positioned(
-              left: camLeft,
-              top: camTop,
-              width: camW,
-              height: camH,
-              child: const _ActiveBorder(),
-            ),
-          if (countdown > 0 && hasActiveSlot)
+          for (int gi = 0; gi < slotGroups.length; gi++)
+            for (final slot in slotGroups[gi])
+              _buildSlotWidget(gi, slot, tw, th, offsetX, offsetY),
+          if (hasActiveGroup)
+            for (final slot in slotGroups[activeGroupIdx])
+              Positioned(
+                left: offsetX + slot.x * tw,
+                top: offsetY + slot.y * th,
+                width: slot.w * tw,
+                height: slot.h * th,
+                child: buildCameraPreview(),
+              ),
+          if (hasActiveGroup)
+            for (final slot in slotGroups[activeGroupIdx])
+              Positioned(
+                left: offsetX + slot.x * tw,
+                top: offsetY + slot.y * th,
+                width: slot.w * tw,
+                height: slot.h * th,
+                child: const _ActiveBorder(),
+              ),
+          if (countdown > 0 && hasActiveGroup)
             _buildCountdownOverlay(
-                slots[activeIndex], tw, th, offsetX, offsetY),
+                slotGroups[activeGroupIdx][0], tw, th, offsetX, offsetY),
           Positioned(
             bottom: 24,
             left: 0,
@@ -450,7 +446,7 @@ class _TemplateSlotView extends StatelessWidget {
   }
 
   Widget _buildSlotWidget(
-    int index,
+    int groupIndex,
     LayoutSlot slot,
     double tw,
     double th,
@@ -462,9 +458,9 @@ class _TemplateSlotView extends StatelessWidget {
     final width = slot.w * tw;
     final height = slot.h * th;
 
-    final isCaptured = index < provider.capturedCount;
+    final isCaptured = groupIndex < provider.capturedCount;
     final isActive =
-        index == provider.capturedCount && !provider.sessionComplete;
+        groupIndex == provider.capturedCount && !provider.sessionComplete;
 
     if (isActive) return const SizedBox.shrink();
 
@@ -472,7 +468,7 @@ class _TemplateSlotView extends StatelessWidget {
 
     if (isCaptured) {
       content = Image.memory(
-        provider.photos[index],
+        provider.photos[groupIndex],
         fit: BoxFit.cover,
         width: width,
         height: height,
