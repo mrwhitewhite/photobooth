@@ -65,16 +65,6 @@ class _AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = context.select<PhotoboothProvider, AppState>((p) => p.state);
 
-    if (state == AppState.screensaver || state == AppState.homepage) {
-      return IndexedStack(
-        index: state == AppState.screensaver ? 0 : 1,
-        children: const [
-          ScreensaverScreen(key: ValueKey('screensaver')),
-          HomepageScreen(key: ValueKey('homepage')),
-        ],
-      );
-    }
-
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 450),
       switchInCurve: Curves.easeOut,

@@ -1,14 +1,7 @@
-import 'dart:math';
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:provider/provider.dart';
 import '../services/photobooth_provider.dart';
-
-const _kVideos = [
-  'assets/screen_saver/screen_saver_1.mp4',
-  'assets/screen_saver/screen_saver_2.mp4',
-];
 
 class ScreensaverScreen extends StatefulWidget {
   const ScreensaverScreen({super.key});
@@ -25,7 +18,7 @@ class _ScreensaverScreenState extends State<ScreensaverScreen> {
   void initState() {
     super.initState();
 
-    final path = _kVideos[Random().nextInt(_kVideos.length)];
+    const path = "assets/video/start_video.mp4";
     _controller = VideoPlayerController.asset(path)
       ..setLooping(true)
       ..setVolume(0)
@@ -48,23 +41,10 @@ class _ScreensaverScreenState extends State<ScreensaverScreen> {
     if (_isExiting) return;
     _isExiting = true;
 
+    _controller?.pause();
+
     final provider = context.read<PhotoboothProvider>();
-    final controller = _controller;
-
     provider.goToHomepage();
-
-    _releaseVideoInBackground(controller);
-  }
-
-  void _releaseVideoInBackground(VideoPlayerController? controller) {
-    unawaited(
-      Future(() async {
-        try {
-          await controller?.pause();
-          await controller?.dispose();
-        } catch (_) {}
-      }),
-    );
   }
 
   @override

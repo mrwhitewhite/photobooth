@@ -323,9 +323,8 @@ class CameraViewState extends State<CameraView>
           ),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            Image.asset('assets/logo.png', height: 36, fit: BoxFit.contain),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               decoration: BoxDecoration(
