@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import 'package:provider/provider.dart';
 import '../models/photo_models.dart';
 import '../services/image_processor.dart';
+import '../services/local_save_service.dart';
 import '../services/photobooth_provider.dart';
 import '../services/printer_service.dart';
 import '../services/email_service.dart';
@@ -30,8 +32,12 @@ class _PreviewScreenState extends State<PreviewScreen>
   bool _isCompositing = true;
   bool _isPrinting = false;
   bool _isSendingEmail = false;
+  bool _isSaving = false;
   Uint8List? _composite;
   String? _error;
+
+  Timer? _idleTimer;
+  static const _idleTimeout = Duration(seconds: 90);
 
   late AnimationController _fadeCtrl;
   late Animation<double> _fadeAnim;
@@ -43,10 +49,23 @@ class _PreviewScreenState extends State<PreviewScreen>
         vsync: this, duration: const Duration(milliseconds: 600));
     _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
     _buildComposite();
+    _resetIdleTimer();
+  }
+
+  void _resetIdleTimer() {
+    _idleTimer?.cancel();
+    _idleTimer = Timer(_idleTimeout, _onIdle);
+  }
+
+  void _onIdle() {
+    if (mounted) {
+      context.read<PhotoboothProvider>().reset();
+    }
   }
 
   @override
   void dispose() {
+    _idleTimer?.cancel();
     _fadeCtrl.dispose();
     super.dispose();
   }
@@ -65,6 +84,8 @@ class _PreviewScreenState extends State<PreviewScreen>
           _isCompositing = false;
         });
         _fadeCtrl.forward();
+        // Auto-save to local storage right after compositing.
+        _autoSave(bytes);
       }
     } catch (e) {
       if (mounted) {
@@ -73,6 +94,61 @@ class _PreviewScreenState extends State<PreviewScreen>
           _isCompositing = false;
         });
       }
+    }
+  }
+
+  Future<void> _autoSave(Uint8List bytes) async {
+    if (_isSaving) return;
+    setState(() => _isSaving = true);
+    try {
+      final path = await LocalSaveService.saveComposite(bytes);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_outline,
+                    color: Color(0xFFD9B87C), size: 16),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Photo saved locally ✓\n$path',
+                    style: const TextStyle(
+                      fontFamily: 'PoppinsMedium',
+                      fontSize: 11,
+                      letterSpacing: 0.5,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF1E3A1E),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Auto-save failed: ${e.toString()}',
+              style: const TextStyle(
+                  fontFamily: 'PoppinsMedium', letterSpacing: 0.5),
+            ),
+            backgroundColor: _C.danger,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 6),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -352,7 +428,11 @@ class _PreviewScreenState extends State<PreviewScreen>
   Widget build(BuildContext context) {
     final provider = context.watch<PhotoboothProvider>();
 
-    return Scaffold(
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTapDown: (_) => _resetIdleTimer(),
+      onPanDown: (_) => _resetIdleTimer(),
+      child: Scaffold(
       backgroundColor: _C.bg,
       body: SafeArea(
         child: LayoutBuilder(
@@ -396,6 +476,7 @@ class _PreviewScreenState extends State<PreviewScreen>
             );
           },
         ),
+      ),
       ),
     );
   }

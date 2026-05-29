@@ -23,6 +23,9 @@ class _HomepageScreenState extends State<HomepageScreen>
   VideoPlayerController? _videoController;
   bool _videoReady = false;
 
+  Timer? _idleTimer;
+  static const _idleTimeout = Duration(seconds: 90);
+
   final ValueNotifier<String?> _savedPrinterName = ValueNotifier<String?>(null);
 
   @override
@@ -35,12 +38,24 @@ class _HomepageScreenState extends State<HomepageScreen>
         .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
 
     _loadInitialPrinter();
+    _resetIdleTimer();
 
     Future.delayed(const Duration(milliseconds: 460), () {
       if (mounted) _ctrl.forward();
     });
 
     Future.delayed(const Duration(milliseconds: 760), _initVideo);
+  }
+
+  void _resetIdleTimer() {
+    _idleTimer?.cancel();
+    _idleTimer = Timer(_idleTimeout, _onIdle);
+  }
+
+  void _onIdle() {
+    if (mounted) {
+      context.read<PhotoboothProvider>().reset();
+    }
   }
 
   Future<void> _loadInitialPrinter() async {
@@ -67,6 +82,7 @@ class _HomepageScreenState extends State<HomepageScreen>
 
   @override
   void dispose() {
+    _idleTimer?.cancel();
     _ctrl.dispose();
     _videoController?.dispose();
     _savedPrinterName.dispose();
@@ -142,7 +158,11 @@ class _HomepageScreenState extends State<HomepageScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTapDown: (_) => _resetIdleTimer(),
+      onPanDown: (_) => _resetIdleTimer(),
+      child: Stack(
       fit: StackFit.expand,
       children: [
         const Positioned.fill(
@@ -213,6 +233,7 @@ class _HomepageScreenState extends State<HomepageScreen>
           ),
         ),
       ],
+    ),
     );
   }
 }
