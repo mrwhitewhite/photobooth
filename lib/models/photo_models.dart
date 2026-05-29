@@ -33,7 +33,7 @@ enum PhotoLayout {
         PhotoLayout.layout2x1 => '2 Photos',
         PhotoLayout.layout2x2 => '4 Photos',
         PhotoLayout.layout3x1 => '3 Photos',
-        PhotoLayout.layout4x2Narrow => '4 Photos (Narrow)',
+        PhotoLayout.layout4x2Narrow => '4 Photos (Flim Style)',
         PhotoLayout.layout4x2Wide => '4 Photos (Wide)',
       };
 
@@ -42,7 +42,7 @@ enum PhotoLayout {
         PhotoLayout.layout2x1 => 'Vertical duo strip',
         PhotoLayout.layout2x2 => '2×2 grid',
         PhotoLayout.layout3x1 => 'Triple strip',
-        PhotoLayout.layout4x2Narrow => '4×2 narrow strip',
+        PhotoLayout.layout4x2Narrow => '4×2 flim style strip',
         PhotoLayout.layout4x2Wide => '4×2 wide strip',
       };
 
