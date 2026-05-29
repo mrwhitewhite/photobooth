@@ -42,7 +42,7 @@ flutter:
     - assets/layout_selection.png
     - assets/layout/1x1.jpeg
     - assets/layout/2x1_camera.jpeg
-    - assets/layout/2x2.png
+    - assets/layout/2x2.jpeg
     - assets/layout/3x1.jpeg
     - assets/layout/4x2_narrow.jpeg
     - assets/layout/4x2_wide.jpeg

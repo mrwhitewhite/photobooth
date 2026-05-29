@@ -40,16 +40,16 @@ enum PhotoLayout {
   String get subtitle => switch (this) {
         PhotoLayout.layout1x1 => 'Single portrait',
         PhotoLayout.layout2x1 => 'Vertical duo strip',
-        PhotoLayout.layout2x2 => '2×2 grid',
+        PhotoLayout.layout2x2 => '2x2 grid',
         PhotoLayout.layout3x1 => 'Triple strip',
-        PhotoLayout.layout4x2Narrow => '4×2 photo strip',
-        PhotoLayout.layout4x2Wide => '4×2 wide strip',
+        PhotoLayout.layout4x2Narrow => '4x2 flim style strip',
+        PhotoLayout.layout4x2Wide => '4x2 wide strip',
       };
 
   String get templateAsset => switch (this) {
         PhotoLayout.layout1x1 => 'assets/layout/1x1.jpeg',
         PhotoLayout.layout2x1 => 'assets/layout/2x1_camera.jpeg',
-        PhotoLayout.layout2x2 => 'assets/layout/2x2.png',
+        PhotoLayout.layout2x2 => 'assets/layout/2x2.jpeg',
         PhotoLayout.layout3x1 => 'assets/layout/3x1.jpeg',
         PhotoLayout.layout4x2Narrow => 'assets/layout/4x2_narrow.jpeg',
         PhotoLayout.layout4x2Wide => 'assets/layout/4x2_wide.jpeg',
