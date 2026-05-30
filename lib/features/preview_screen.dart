@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
@@ -35,6 +36,9 @@ class _PreviewScreenState extends State<PreviewScreen>
   Uint8List? _composite;
   String? _error;
 
+  Timer? _idleTimer;
+  static const _idleTimeout = Duration(seconds: 90);
+
   late AnimationController _fadeCtrl;
   late Animation<double> _fadeAnim;
 
@@ -45,10 +49,23 @@ class _PreviewScreenState extends State<PreviewScreen>
         vsync: this, duration: const Duration(milliseconds: 600));
     _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
     _buildComposite();
+    _resetIdleTimer();
+  }
+
+  void _resetIdleTimer() {
+    _idleTimer?.cancel();
+    _idleTimer = Timer(_idleTimeout, _onIdle);
+  }
+
+  void _onIdle() {
+    if (mounted) {
+      context.read<PhotoboothProvider>().reset();
+    }
   }
 
   @override
   void dispose() {
+    _idleTimer?.cancel();
     _fadeCtrl.dispose();
     super.dispose();
   }
@@ -411,7 +428,11 @@ class _PreviewScreenState extends State<PreviewScreen>
   Widget build(BuildContext context) {
     final provider = context.watch<PhotoboothProvider>();
 
-    return Scaffold(
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTapDown: (_) => _resetIdleTimer(),
+      onPanDown: (_) => _resetIdleTimer(),
+      child: Scaffold(
       backgroundColor: _C.bg,
       body: SafeArea(
         child: LayoutBuilder(
@@ -455,6 +476,7 @@ class _PreviewScreenState extends State<PreviewScreen>
             );
           },
         ),
+      ),
       ),
     );
   }

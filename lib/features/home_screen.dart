@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/photo_models.dart';
@@ -24,19 +25,48 @@ class _HomeScreenState extends State<HomeScreen> {
 
   static const _layouts = PhotoLayout.values;
 
+  Timer? _idleTimer;
+  static const _idleTimeout = Duration(seconds: 90);
+
+  @override
+  void initState() {
+    super.initState();
+    _resetIdleTimer();
+  }
+
+  @override
+  void dispose() {
+    _idleTimer?.cancel();
+    super.dispose();
+  }
+
+  void _resetIdleTimer() {
+    _idleTimer?.cancel();
+    _idleTimer = Timer(_idleTimeout, _onIdle);
+  }
+
+  void _onIdle() {
+    if (mounted) {
+      context.read<PhotoboothProvider>().reset();
+    }
+  }
+
   void _goLeft() {
+    _resetIdleTimer();
     if (_currentIndex > 0) {
       setState(() => _currentIndex--);
     }
   }
 
   void _goRight() {
+    _resetIdleTimer();
     if (_currentIndex < _layouts.length - 1) {
       setState(() => _currentIndex++);
     }
   }
 
   void _choose() {
+    _idleTimer?.cancel();
     context.read<PhotoboothProvider>().startSession(_layouts[_currentIndex]);
   }
 
@@ -44,7 +74,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final layout = _layouts[_currentIndex];
 
-    return Scaffold(
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTapDown: (_) => _resetIdleTimer(),
+      onPanDown: (_) => _resetIdleTimer(),
+      child: Scaffold(
       backgroundColor: _C.bg,
       body: SafeArea(
         child: Column(
@@ -82,6 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
