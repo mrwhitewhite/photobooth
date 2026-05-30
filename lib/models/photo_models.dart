@@ -42,8 +42,8 @@ enum PhotoLayout {
         PhotoLayout.layout2x1 => 'Vertical duo strip',
         PhotoLayout.layout2x2 => '2x2 grid',
         PhotoLayout.layout3x1 => 'Triple strip',
-        PhotoLayout.layout4x2Narrow => '4x2 flim style strip',
-        PhotoLayout.layout4x2Wide => '4x2 wide strip',
+        PhotoLayout.layout4x2Narrow => '4x2 photo strip',
+        PhotoLayout.layout4x2Wide => '4x2 photo strip',
       };
 
   String get templateAsset => switch (this) {
