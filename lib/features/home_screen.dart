@@ -31,9 +31,9 @@ class _HomeScreenState extends State<HomeScreen> {
   late PageController _pageController;
 
   double _viewportFraction(double width) {
-    if (width <= 600) return 0.78;
-    if (width <= 1024) return 0.65;
-    return 0.50;
+    if (width <= 600) return 0.68;
+    if (width <= 1024) return 0.55;
+    return 0.42;
   }
 
   @override
@@ -228,8 +228,8 @@ class _LayoutCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double scale = isActive ? 1.0 : 0.88;
-    final double opacity = isActive ? 1.0 : 0.55;
+    final double scale = isActive ? 1.0 : 0.92;
+    final double opacity = isActive ? 1.0 : 0.65;
     final Color borderColor = isActive ? _C.accent : _C.border;
     final double borderWidth = isActive ? 2.0 : 1.0;
     final List<BoxShadow> shadow = isActive
